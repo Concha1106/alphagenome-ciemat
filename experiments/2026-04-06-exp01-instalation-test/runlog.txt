@@ -1,0 +1,30 @@
+ID de ejecución: 2026-04-06-exp01
+Objetivo: Verificar la instalación y funcionamiento básico de AlphaGenome
+
+Entrada:
+- scripts/process_gtf_test.py:
+  raw-data/2026-04-06-exp01-instalation-test/Homo_sapiens.GRCh38.115.abinitio.gtf.gz (Fuente: Ensembl release-115, https://ftp.ensembl.org/pub/release-115/gtf/homo_sapiens/) 
+- scripts/process_gtf.py:
+  raw-data/2026-04-06-exp01-instalation-test/mini_clean2.gtf (Fuente: archivo simulado para realizar pruebas de verificación de instalación)
+
+Salida:
+- Visualización en pantalla: "Ran 2 tests in 0.271s - OK" (process_gtf_test.py)
+- results/2026-04-06-exp01-instalation-test/mini_output.feather (process_gtf.py)
+
+Comando:
+- python scripts/process_gtf_test.py --input raw-data/2026-04-06-exp01-instalation-test/Homo_sapiens.GRCh38.115.abinitio.gtf.gz
+- python scripts/process_gtf.py --input raw-data/2026-04-06-exp01-instalation-test/mini_clean2.gtf --out results/2026-04-06-exp01-instalation-test/mini_output.feather
+
+Parámetros: ninguno adicional
+
+Versión del script:
+ver commits en Git (hash: a68630f8a466527f23b4f8628ae101fdf1a897c6 y anteriores)
+
+Versión de Python/herramientas:
+Python 3.13 (conda alphagenome)
+AlphaGenome 0.6.1
+
+Observaciones:
+- Instalación y ejecución correcta de AlphaGenome
+- process_gtf_test.py produjo la salida en pantalla según lo esperado
+- process_gtf.py generó el archivo de salida correctamente

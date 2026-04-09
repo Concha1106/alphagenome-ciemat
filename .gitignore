@@ -1,0 +1,23 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Conda / environments
+.env
+.venv
+env/
+venv/
+
+# Temporary files
+*.tmp
+*.temp
+*.log
+*.swp
+*~
+
+# Results (datos generados) & intermediate data
+results/
+interm-data/
+
