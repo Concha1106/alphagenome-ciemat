@@ -1,0 +1,18 @@
+archivo	rol	origen	descripcion	restricciones
+raw-data/2026-04-06-exp01-installation-test/Homo_sapiens.GRCh38.115.abinitio.gtf.gz	entrada	Ensembl	GTF de referencia usado en pruebas iniciales del proyecto	Puede ser grande; no modificar manualmente
+raw-data/2026-04-06-exp01-installation-test/mini_clean2.gtf	entrada	Derivado del GTF de referencia	Subconjunto de prueba pequeño para validación rápida	Uso interno de test
+scripts/2026-04-06-exp01-installation-test/process_gtf_test.py	script	Propio	Script de prueba para procesar un GTF pequeño	Requiere entorno definido en environment.yml
+scripts/2026-04-06-exp01-installation-test/process_gtf.py	script	Propio	Script principal de procesamiento GTF usado en exp01	Requiere entorno definido en environment.yml
+results/2026-04-06-exp01-installation-test/mini_output.feather	salida	Generado por el proyecto	Salida de prueba producida por process_gtf_test.py	Regenerable; no editar manualmente
+results/2026-04-06-exp01-installation-test/runlog.txt	runlog	Propio	Registro de la ejecución exp01 (instalación y pruebas iniciales)	No aplica
+environment/environment.yml	entorno	Propio	Export del entorno conda del proyecto (dependencias y versiones)	Actualizar cuando cambien dependencias
+alphagenome_key.py	script	Propio	Función para crear el cliente de AlphaGenome a partir de API key	Requiere variable de entorno ALPHAGENOME_API_KEY
+scripts/2026-04-10-exp02-exon-skipping/	score-codigo	Propio	Directorio con scripts para el experimento de exon skipping (DLG1) en desarrollo	En desarrollo
+results/2026-04-10-exp02-exon-skipping/runlog.txt	runlog	Propio	Registro de la ejecución exp02 (replicación de variante de splicing)	En desarrollo
+docs/paper-alphagenome.pdf	documentacion	Nature (AlphaGenome paper)	Artículo de referencia para el diseño del experimento	No aplica
+scripts/2026-04-10-exp02-exon-skipping/exp02-score_exon_skipping.py	script	Propio	Script principal para evaluar el efecto de la variante en DLG1 mediante scorers de splicing	Requiere entorno con AlphaGenome y variable de entorno ALPHAGENOME_API_KEY
+results/2026-04-10-exp02-exon-skipping/dlg1_usage_tibial.tsv	salida	Generado por el proyecto	Tabla con valores de SPLICE_SITE_USAGE en tejidos Tibial (Artery y Nerve)	Regenerable; no editar manualmente
+results/2026-04-10-exp02-exon-skipping/dlg1_sites.tsv	salida	Generado por el proyecto	Tabla con scores de SPLICE_SITES (donor/acceptor por hebra) para DLG1	Regenerable; no editar manualmente
+results/2026-04-10-exp02-exon-skipping/dlg1_junctions_tibial.tsv	salida	Generado por el proyecto	Tabla de splice junctions con longitud y señal en tejidos Tibial	Regenerable; no editar manualmente
+results/2026-04-10-exp02-exon-skipping/dlg1_summary.tsv	salida	Generado por el proyecto	Resumen del experimento con métricas clave y junction candidata a exon skipping	Regenerable; no editar manualmente
+results/2026-04-10-exp02-exon-skipping/runlog.txt	runlog	Propio	Registro completo de la ejecución del experimento exp02 (variant scoring y análisis de splicing)	No aplica
