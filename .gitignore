@@ -17,6 +17,9 @@ venv/
 *.swp
 *~
 
+# Sistema
+.DS_Store
+
 # Results (datos generados) & intermediate data
 results/
 interm-data/
