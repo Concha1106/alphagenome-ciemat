@@ -17,11 +17,16 @@ venv/
 *.swp
 *~
 
-# Sistema
+# Sistem
 .DS_Store
 
 # Results (datos generados) & intermediate data
-results/
+results/*
+!results/*/runlog.txt
 interm-data/
 
+# Scripts
 alphagenome_key.py
+
+# Docs
+docs/evidencia-kanban.txt
