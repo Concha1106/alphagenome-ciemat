@@ -25,6 +25,9 @@ results/*
 !results/*/runlog.txt
 interm-data/
 
+# Inputs
+raw-data/*.gtf
+
 # Scripts
 alphagenome_key.py
 
