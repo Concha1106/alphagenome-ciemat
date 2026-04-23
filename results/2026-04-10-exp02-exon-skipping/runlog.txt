@@ -1,0 +1,174 @@
+ID de ejecución: 2026-04-10-exp02
+Fecha: última actualización  2026-04-23
+Objetivo: Iniciar la replicación del experimento para la predicción de exon skipping descrito en el paper de AlphaGenome para la variante chr3:197081044:TACTC>T en DLG1.
+
+# SCRIPT PARA LA PREDICCIÓN DE EFECTO FUNCIONAL EN LA MUTACIÓN OBJETIVO 
+
+## Entradas:
+- docs/alphagenome.pdf
+  Rol: referencia científica principal para definir el experimento
+  Fuente: artículo de Nature sobre AlphaGenome
+- alphagenome_key.py
+  Rol: creación del cliente AlphaGenome a partir de la API key
+  Fuente: script propio
+- Variante de interés:
+  chromosome = chr3
+  position = 197081044
+  reference_bases = TACTC
+  alternate_bases = T
+
+## Resultados:
+- results/2026-04-10-exp02-exon-skipping/dlg1_usage_tibial.tsv
+- results/2026-04-10-exp02-exon-skipping/dlg1_sites.tsv
+- results/2026-04-10-exp02-exon-skipping/dlg1_junctions_tibial.tsv
+- results/2026-04-10-exp02-exon-skipping/dlg1_summary.tsv
+
+## Parámetros:
+- Scorers utilizados:
+  - SPLICE_SITE_USAGE
+  - SPLICE_SITES
+  - SPLICE_JUNCTIONS
+- Métrica derivada:
+  - COMBINED_SCORE
+- Timeout en dna_client.create(): 30 s
+
+## Scripts:
+- scripts/2026-04-10-exp02-exon-skipping/exp02-score_exon_skipping.py
+- alphagenome_key.py
+
+## Comandos ejecutados:
+ - python -c "from alphagenome_key import get_dna_model; model = get_dna_model(); print(model)"
+ - openssl s_client -connect gdmscience.googleapis.com:443 -brief
+ - cat /etc/resolv.conf
+ - PYTHONPATH=. python scripts/2026-04-10-exp02-exon-skipping/exp02-score_exon_skipping.py
+ - Comando de medición:
+   /usr/bin/time -v env PYTHONPATH=. python scripts/2026-04-10-exp02-exon-skipping/exp02-score_exon_skipping.py
+  
+## Entorno:
+ - Python 3.13
+ - Entorno conda: alphagenome
+ - AlphaGenome 0.6.1
+ - Sistema: Ubuntu en VirtualBox
+
+## Tiempo de ejecución:
+ - Elapsed (wall clock) time: 0:08.540 
+## Uso de recursos:
+ - Maximum resident set size: 174152 kbytes (~170 MB RAM)
+
+## Recursos observados:
+ - Sin consumo anómalo aparente de CPU o disco
+ - La incidencia principal observada fue de conectividad/resolución DNS, no de rendimiento computacional
+ 
+## Commit asociado: a5696a96fec02a244db2c2c4507b850b0ee51a80
+
+# PRUEBAS EXPLORATORIAS DE VARIANTES
+
+## Ejecución: modificación manual del objeto Variant en el script y re-ejecución completa del script. Se evaluaron variantes exploratorias modificando la posición y/o la secuencia respecto a la variante del paper en DLG1.
+
+## Entradas:
+ - Desplazamientos posicionales (-42 nt, +2 nt, +10 nt)
+ - Cambios de secuencia (TACTC>ATGAG, TACTC>TA)
+
+## Resultados:
+0) Variante del paper (referencia)
+ - Variante: chr3:197081044 TACTC>T
+ - combined_score: 3.6115
+ - usage: Artery_Tibial = 0.9598; Nerve_Tibial = 0.9441
+ - sites: donor_- = 0.9111; acceptor_- = 0.7441
+ - junction candidata: 197076685 - 197085579 (length = 8894; max_tibial_score = 6.4102)
+ - Interpretación: presenta una señal fuerte en todos los parámetros de splicing y una junction larga compatible con exon skipping, en lína con lo descrito en el paper.
+
+1) Variante desplazada -42 nt
+ - Variante: chr3:197081002 ATGTA>AT
+ - combined_score: 0.3806
+ - usage: bajo
+ - sites: bajos
+ - junction candidata: 197282845 - 197297185 (length = 14340; max_tibial_score = 0.4797)
+ - Interpretación: no muestra una señal fuerte compatible con una alteración relevante del splicing. La presencia de junctions por sí sola no implica efecto funcional.
+
+2) Variante desplazada +2 nt
+ - Variante: chr3:197081046 CTCAC>A
+ - combined_score: 3.5308
+ - usage: alto
+ - sites: altos
+ - junction candidata: 197076682 - 197085579 (length = 8897; max_tibial_score = 5.3242)
+ - Interpretación: produce una perturbación fuerte compatible con alteración del splicing, lo que sugiere que el entorno inmediato de la variante del paper es especialmente sensible a cambios de secuencia.
+
+3) Variante desplazada +10 nt
+ - Variante: chr3:197081054 TTTAT>T
+ - combined_score: 0.3415
+ - usage: bajo
+ - sites: bajos
+ - junction candidata: 197140264 - 197194424 (length = 54160; max_tibial_score = 0.3083)
+ - Interpretación: al alejarse del entorno inmediato de la variante del paper, desaparece la señal compatible con una alteración importante del splicing.
+
+4) Sustitución completa del motivo local
+ - Variante: chr3:197081044 TACTC>ATGAG
+ - combined_score: 3.8236
+ - junction candidata: 197076685 - 197085579 (length = 8894)
+ - Interpretación: la alteración fuerte de la secuencia local, incluso sin deleción, mantiene una señal elevada, lo que sugiere que el efecto no depende exclusivamente de la eliminación de bases, sino de la modificación del contexto de secuencia enen esa región.
+
+5) Deleción parcial del motivo local
+ - Variante: chr3:197081044 TACTC>TA
+ - combined_score: 3.8319
+ - usage: Artery_Tibial = 0.9607; Nerve_Tibial = 0.9451
+ - sites: donor_- = 0.9947; acceptor_- = 0.9058
+ - junction candidata: 197076685 - 197085579 (length = 8894; max_tibial_score = 6.4258)
+
+- Interpretación: una modificación diferente a la de referencia, pero simil (deleción) mantiene una señal fuerte y una junction candidata similar, apoyando que esta región es especialmente sensible a cambios de secuencia.
+
+
+## Interpretación global:
+La respuesta del modelo parece depender del contexto local de la secuencia y no de una mutación específica aislada. De este modo, la secuencia local en ese punto es funcionalmente importante para la regulación del splicing, y varias perturbaciones de esa secuencia pueden alterar de forma marcada la predicción del modelo.
+
+#  ANÁLISIS GTF PARA LA VALIDACIÓN DE JUNCTIONS 
+
+## Entrada:
+ - raw-data/2026-04-10-exp02-exon-skipping/Homo_sapiens.GRCh38.115.gtf (Ensembl)
+Se generó el archivo intermedio interm-data/2026-04-10-exp02-exon-skipping/dlg1_exons.gtf a partir del GTF completo de Ensembl, filtrando únicamente los exones anotados para DLG1.
+
+### Junction evaluada: 197076685 - 197085579
+
+## Comandos:
+ - Filtrado de exones DLG1:
+grep 'ENSG00000075711 'raw-data/2026-04-10-exp02-exon-skipping/Homo_sapiens.GRCh38.115.gtf | grep $'\texon\t' > interm-data/2026-04-10-exp02-exon-skipping/dlg1_exons.gtf
+
+ - Identificación de exones en límites de la junction candidata:
+awk '$3=="exon" && $5==197076685 {print $4, $5}' interm-data/2026-04-10-exp02-exon-skipping/dlg1_exons.gtf | sort -u
+awk '$3=="exon" && $4==197085580 {print $4, $5}' interm-data/2026-04-10-exp02-exon-skipping/dlg1_exons.gtf | sort -u
+
+ - Identificación de exones intermedios:
+awk '$3=="exon" && $4>197076685 && $5<197085579 {print $4, $5}' interm-data/2026-04-10-exp02-exon-skipping/dlg1_exons.gtf | sort -u
+
+## Resultados:
+### Exones en los límites de la junction candidata:
+- Exón anterior: 197076586 – 197076685
+- Exón siguiente:
+  - 197085580 – 197085658
+  - 197085580 – 197085756
+
+### Exones intermedios identificados entre ambos límites:
+- 197078463 – 197078533
+- 197080478 – 197081117
+- 197080990 – 197081117
+- 197081051 – 197081117
+
+## Interpretación:
+La junction candidata (197076685 - 197085579) conecta el final de un exón con el inicio de otro exón no adyacente, omitiendo múltiples exones intermedios anotados en el GTF.
+
+Este patrón es consistente con un evento de exon skipping, ya que la unión se produce entre regiones exónicas separadas, excluyendo completamente los exones intermedios del transcrito.
+
+# OBSERVACIONES GENERALES:
+- Inicialmente, la creación del cliente AlphaGenome falló con grpc.FutureTimeoutError
+- La causa se aisló como un problema de resolución DNS en la máquina virtual Ubuntu
+- Evidencia adicional: el comando openssl s_client -connect gdmscience.googleapis.com:443 -brief devolvió previamente “Temporary failure in name resolution”
+- Tras corregir la configuración DNS en /etc/resolv.conf, la conexión se restableció correctamente
+- Verificación final: python -c "from alphagenome_key import get_dna_model; model = get_dna_model(); print(model)" devolvió correctamente un objeto DnaClient
+- Consumo de memoria moderado, adecuado para este tipo de análisis.
+- Se identificó una junction candidata a exon skipping con longitud significativamente mayor (8894 bp).
+- Se observó señal en Artery_Tibial, consistente con el tejido descrito en el paper.
+- Se añadió a posteriori una métrica heurística conjunta de splicing recomendada por AlphaGenome, en la que se obtuvo un valor aproximado de "3.61".
+-  En esta versión posterior del script se añadió también el cálculo de longitud de splice junctions (`length`) y una métrica auxiliar (`max_tibial_score`) para resumir la mayor señal absoluta entre Artery_Tibial y Nerve_Tibial en cada junction.
+- La junction candidata del summary se sigue seleccionando por longitud como criterio exploratorio compatible con exon skipping, mientras que `max_tibial_score` se conserva como apoyo cuantitativo. 
+La aparición recurrente de una junction larga con coordenadas similares en distintas variantes de alto impacto sugiere que la perturbación de esta región induce un patrón consistente de empalme alternativo. 
+- La junction candidata conecta dos bordes exónicos dejando uno o más exones anotados entre ambos. Este patrón es compatible con un evento de exon skipping en DLG1.
