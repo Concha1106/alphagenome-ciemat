@@ -16,3 +16,5 @@ results/2026-04-10-exp02-exon-skipping/dlg1_sites.tsv	salida	Generado por el pro
 results/2026-04-10-exp02-exon-skipping/dlg1_junctions_tibial.tsv	salida	Generado por el proyecto	Tabla de splice junctions en tejidos tibiales con coordenadas, longitud y max_tibial_score	Regenerable; no editar manualmente
 results/2026-04-10-exp02-exon-skipping/dlg1_summary.tsv	salida	Generado por el proyecto	Resumen del experimento con métricas clave y junction candidata a exon skipping, longitud, señal tibial y combined splicing scoreg	Regenerable; no editar manualmente
 results/2026-04-10-exp02-exon-skipping/runlog.txt	runlog	Propio	Registro completo de la ejecución del experimento exp02 (variant scoring y análisis de splicing)	No aplica
+raw-data/2026-04-10-exp02-exon-skipping/Homo_sapiens.GRCh38.115.gtf    input   Ensembl release 115    Anotación genómica completa en formato GTF    Descargable desde Ensembl; no modificar
+interm-data/2026-04-10-exp02-exon-skipping/dlg1_exons.gtf    interm-data   Derivado del GTF completo    Subconjunto de exones del gen DLG1 usado para análisis de junctions    Regenerable mediante filtrado con grep
