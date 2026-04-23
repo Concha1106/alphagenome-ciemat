@@ -22,7 +22,7 @@ Más adelante será necesario comparar predicciones referencia vs variante para 
 
 ## Scripts utilizados
 
-- alphagenome.py 
+- alphagenome_key.py 
 - scripts/2026-04-10-exp02-exon-skipping/exp02-score_exon_skipping.py: calcula scores resumidos de efecto de variante sobre splicing y genera tablas de splice site usage, splice sites, splice junctions y un summary final con una junction candidata compatible con exon skipping.  
 
 
@@ -33,6 +33,7 @@ Desde la raíz del proyecto:
 ```bash
 PYTHONPATH=. python scripts/2026-04-10-exp02-exon-skipping/exp02-score_exon_skipping.py
 
+´´´
 Nota: Se ejecuta con PYTHONPATH=. para que Python pueda encontrar alphagenome_key.py desde la raíz del proyecto.
 
 ## Resultados
@@ -68,19 +69,19 @@ Esto sugiere que la respuesta del modelo depende fuertemente del contexto local,
 
 - Efecto del tipo de mutación
 Se evaluaron distintas modificaciones en la misma posición:
-	- Sustitución completa (TACTC → ATGAG)
-	- Deleción parcial (TACTC → TA)
+	- Sustitución completa (TACTC>ATGAG)
+	- Deleción parcial (TACTC>TA)
 
 Ambas produjeron scores elevados y aparición de junctions similares, lo que indica que el efecto no depende de una única mutación concreta, sino de la alteración del motivo de secuencia local.
 
 - Comparación referencia vs mutación
 La comparación entre la secuencia de referencia y las variantes muestra que:
 
-La referencia no presenta junctions con señal relevante.
+La referencia no presenta junctions con señal relevante en comparación con las variantes evaluadas.
 Las variantes inducen múltiples junctions con scores altos, destacando de forma recurrente:
 197076685 → 197085579 (~8894 bp)
 
-Esto sugiere una reorganización consistente del patrón de splicing en presencia de la mutación.
+Esto sugiere una reorganización consistente del patrón de splicing predicho en presencia de la mutación.
 
 ### Interpretación conjunta
 Estos resultados indican que el modelo responde de forma coherente al contexto de la variante, siendo la región analizada sensible a perturbaciones de secuencia.
@@ -88,10 +89,18 @@ Diferentes alteraciones en esa zona pueden inducir cambios relevantes en el spli
 
 Aunque no se demuestra de forma directa el mecanismo exacto, los resultados son compatibles con una alteración significativa del splicing, potencialmente asociada a eventos de exon skipping.
 
+## Validación estructural mediante anotación (GTF)
+
+Para apoyar la interpretación de las splice junctions predichas, se utilizó la anotación genómica de Ensembl (GRCh38, release 115).
+
+Se filtraron los exones del gen DLG1 a partir del archivo GTF completo, generando un subconjunto intermedio (`dlg1_exons.gtf`) que permite contrastar las coordenadas de las junctions predichas con la estructura exónica real.
+
+Este análisis fue consistente con la hipotesis de que la junction candidata conecta exones no consecutivos, lo cual apoya la idea de la existencia de un evento de exon skipping.
+
 ## Archivos asociados
 
-- runlog.txt → registro reproducible de ejecución  
-- manifest-data.tsv → inventario general de archivos del proyecto  
+- runlog.txt: registro reproducible de ejecución  
+- manifest-data.tsv: inventario general de archivos del proyecto  
 
 ## Estado
 
