@@ -19,7 +19,6 @@ The output tables are intended for downstream plotting.
 """
 
 from pathlib import Path
-
 import pandas as pd
 from alphagenome.data import genome
 from alphagenome.models import dna_client
@@ -62,20 +61,21 @@ variant_output = model.predict_variant(
 
 # 4) Define output directory and plotting region
 
-outdir = Path("~/Desktop/alphagenome-ciemat/results/2026-04-10-exp02-exon-skipping").expanduser()
+outdir = Path("~/Desktop/test-zip-recovery/alphagenome-ciemat/results/2026-04-10-exp02-exon-skipping").expanduser()
 outdir.mkdir(parents=True, exist_ok=True)
 
 plot_region = genome.Interval(
     chromosome="chr3",
-    start=197075000,
-    end=197087000,
+    start=197076044,
+    end  =197086544,
 )
 
+print(variant_output.reference.splice_junctions.metadata)
 
 # 5) Helper function for TrackData outputs
 
 def track_to_dataframe(ref_track, alt_track, region, output_type):
-    """Convert REF and ALT TrackData objects into a tidy dataframe."""
+    # Convert REF and ALT TrackData objects into a tidy dataframe.
 
     ref_region = ref_track.slice_by_interval(region)
     alt_region = alt_track.slice_by_interval(region)
@@ -122,6 +122,20 @@ df_junc.to_csv(
     index=False,
 )
 
+df_junc_top_up = df_junc.sort_values("delta_alt_ref", ascending=False).head(10)
+df_junc_top_down = df_junc.sort_values("delta_alt_ref", ascending=True).head(10)
+
+df_junc_top_up.to_csv(
+    outdir / "dlg1_splice_junctions_top10_increased_alt_vs_ref.tsv",
+    sep="\t",
+    index=False,
+)
+
+df_junc_top_down.to_csv(
+    outdir / "dlg1_splice_junctions_top10_decreased_alt_vs_ref.tsv",
+    sep="\t",
+    index=False,
+)
 
 # 7) Splice site usage: REF vs ALT
 
@@ -141,7 +155,20 @@ df_usage.to_csv(
     index=False,
 )
 
+df_usage_top_up = df_usage.sort_values("delta_alt_ref", ascending=False).head(10)
+df_usage_top_down = df_usage.sort_values("delta_alt_ref", ascending=True).head(10)
 
+df_usage_top_up.to_csv(
+    outdir / "dlg1_splice_site_usage_top10_increased_alt_vs_ref.tsv",
+    sep="\t",
+    index=False,
+)
+
+df_usage_top_down.to_csv(
+    outdir / "dlg1_splice_site_usage_top10_decreased_alt_vs_ref.tsv",
+    sep="\t",
+    index=False,
+)
 # 8) Splice sites: REF vs ALT
 
 ref_sites = variant_output.reference.splice_sites.filter_to_negative_strand()
@@ -160,6 +187,20 @@ df_sites.to_csv(
     index=False,
 )
 
+df_sites_top_up = df_sites.sort_values("delta_alt_ref", ascending=False).head(10)
+df_sites_top_down = df_sites.sort_values("delta_alt_ref", ascending=True).head(10)
+
+df_sites_top_up.to_csv(
+    outdir / "dlg1_splice_site_top10_increased_alt_vs_ref.tsv",
+    sep="\t",
+    index=False,
+)
+
+df_sites_top_down.to_csv(
+    outdir / "dlg1_splice_site_top10_decreased_alt_vs_ref.tsv",
+    sep="\t",
+    index=False,
+)
 
 # 9) RNA-seq predicted coverage: REF vs ALT
 
@@ -184,6 +225,9 @@ print("- dlg1_splice_junctions_ref_vs_alt.tsv")
 print("- dlg1_splice_site_usage_ref_vs_alt.tsv")
 print("- dlg1_splice_sites_ref_vs_alt.tsv")
 print("- dlg1_rna_seq_ref_vs_alt.tsv")
-
-
-
+print("- dlg1_splice_junctions_top10_increased_alt_vs_ref.tsv")
+print("- dlg1_splice_junctions_top10_decreased_alt_vs_ref.tsv")
+print("- dlg1_splice_site_usage_top10_increased_alt_vs_ref.tsv")
+print("- dlg1_splice_site_usage_top10_decreased_alt_vs_ref.tsv")
+print("- dlg1_splice_site_top10_increased_alt_vs_ref.tsv")
+print("- dlg1_splice_site_top10_decreased_alt_vs_ref.tsv")

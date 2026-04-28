@@ -205,6 +205,14 @@ Este patrón es consistente con un evento de exon skipping, ya que la unión se 
 
 ## Objetivo: Generar predicciones REF vs ALT con AlphaGenome para la variante chr3:197081044 TACTC>T en DLG1, usando outputs relacionados con exon skipping: splice junctions, splice site usage, splice sites y RNA-seq.
 
+En lugar de revisar únicamente las tablas completas, se generan tablas resumen con los 10 eventos que más aumentan y los 10 que más disminuyen tras aplicar la variante.
+
+Esto permite identificar de forma más directa:
+
+- splice junctions ganadas o perdidas
+- splice sites debilitados o reforzados
+- cambios relevantes en splice site usage
+
 ## Entradas:
 - Variante: chr3:197081044 TACTC>T
 - Contexto tisular: UBERON:0007610 / GTEx Artery_Tibial
@@ -275,22 +283,45 @@ Las junctions REF conectan los exones flanqueantes con el exon 17, mientras que 
 
 Esta comparación estructural apoya la interpretación de que la variante induce un patrón compatible con exon skipping del exon 17.
 
+## Actualización de código:
+Se añadió al script el cálculo automático de:
+```
+df.sort_values("delta_alt_ref", ascending=False).head(10)
+df.sort_values("delta_alt_ref", ascending=True).head(10)
+```
+para los siguientes outputs:
+
+- splice_junctions
+- splice_site_usage
+- splice_sites
+
 ## Resultados:
 - results/2026-04-10-exp02-exon-skipping/dlg1_splice_junctions_ref_vs_alt.tsv
 - results/2026-04-10-exp02-exon-skipping/dlg1_splice_site_usage_ref_vs_alt.tsv
 - results/2026-04-10-exp02-exon-skipping/dlg1_splice_sites_ref_vs_alt.tsv
 - results/2026-04-10-exp02-exon-skipping/dlg1_rna_seq_ref_vs_alt.tsv
 
+### Nuevos resultados generados:
+- dlg1_splice_junctions_top10_increased_alt_vs_ref.tsv
+- dlg1_splice_junctions_top10_decreased_alt_vs_ref.tsv
+- dlg1_splice_site_usage_top10_increased_alt_vs_ref.tsv
+- dlg1_splice_site_usage_top10_decreased_alt_vs_ref.tsv
+- dlg1_splice_sites_top10_increased_alt_vs_ref.tsv
+- dlg1_splice_sites_top10_decreased_alt_vs_ref.tsv
+
 ## Interpretación:
 Las salidas se filtran a hebra negativa (-), coherente con la anotación de DLG1.
 
-Estas tablas permiten:
+Las tablas generales permiten:
 - identificar junctions perdidas y ganadas
 - observar cambios en splice site usage
 - analizar aparición de junctions de novo
 - comparar cobertura RNA-seq entre REF y ALT
 
-Este análisis permitirá construir posteriormente una visualización comparable con la Figura 3b del paper.
+Las tablas resumen incluidas en la actualización del script permiten  además, priorizar las señales más relevantes para validar el evento descrito en el paper.
+Especialmente en splice_junctions, la aparición entre los valores más aumentados de una junction larga que conecta directamente los exones flanqueantes (197076685-197085579) refuerza la hipótesis de exon skipping del exon 17.
+
+Este enfoque mejora la trazabilidad biológica y facilita la justificación de la replicación incluso antes de generar una visualización formal tipo Figura 3b.
 
 # Entorno:
  - Python 3.13

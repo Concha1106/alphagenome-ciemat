@@ -205,6 +205,31 @@ El script genera tablas en formato '.tsv' listas para graficar:
 
 Estas salidas permitirán analizar con mayor precisión qué junctions se pierden, cuáles aparecen de novo y cómo cambia la señal de uso de sitios de splicing, aportando una validación más directa de la hipótesis de exon skipping descrita en el artículo.
 
+- Refinamiento de interpretación mediante tablas Top10: Para facilitar la interpretación biológica de los resultados obtenidos con predict_variant(), se añadieron tablas resumen que priorizan los eventoscon mayor cambio entre ALT y REF (delta_alt_ref)
+
+Aunque las tablas completas permiten un análisis exhaustivo, su tamaño dificulta la identificación rápida de los eventos más relevantes. Por ello, se generaron tablas adicionales con los 10 eventos que más aumentan y los 10 que más disminuyen tras aplicar la variante.
+
+Esto permite detectar de forma más directa:
+
+- splice junctions ganadas o perdidas
+- splice sites debilitados o reforzados
+- cambios relevantes en splice site usage
+
+Especialmente en el caso de splice_junctions, este enfoque ayuda a localizar rápidamente la aparición de junctions largas compatibles con exon skipping.
+Se generaron los siguientes archivos: 
+
+- dlg1_splice_junctions_top10_increased_alt_vs_ref.tsv
+- dlg1_splice_junctions_top10_decreased_alt_vs_ref.tsv
+- dlg1_splice_site_usage_top10_increased_alt_vs_ref.tsv
+- dlg1_splice_site_usage_top10_decreased_alt_vs_ref.tsv
+- dlg1_splice_sites_top10_increased_alt_vs_ref.tsv
+- dlg1_splice_sites_top10_decreased_alt_vs_ref.tsv
+
+Estas tablas resumen permiten priorizar las señales más relevantes antes de construir la visualización final tipo Figura 3b.
+
+En particular, la aparición entre los valores más aumentados de una junction larga que conecta directamente los exones flanqueantes 197076685-197085579 refuerza la hipótesis de exon skipping del exón 17, ya que implica la omisión del exón intermedio y reproduce estructuralmente el fenómeno descrito en el paper
+
+Este refinamiento mejora la trazabilidad biológica del análisis y facilita la justificación de la replicación incluso antes de generar la figura final.
 
 ## Archivos asociados
 
