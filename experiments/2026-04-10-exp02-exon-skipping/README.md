@@ -231,6 +231,10 @@ En particular, la aparición entre los valores más aumentados de una junction l
 
 Este refinamiento mejora la trazabilidad biológica del análisis y facilita la justificación de la replicación incluso antes de generar la figura final.
 
+# 3. SCRIPT PARA LA VISUALIZACIÓN DE LA FIGURA 3b.
+
+Se inició el desarrollo de una visualización simplificada de la Figura 3b del paper, centrada en la representación de splice junctions REF vs ALT mediante arcos entre coordenadas genómicas relevantes.
+
 ## Archivos asociados
 
 - runlog.txt: registro reproducible de ejecución  

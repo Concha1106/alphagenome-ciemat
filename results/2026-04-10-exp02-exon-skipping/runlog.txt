@@ -323,6 +323,10 @@ Especialmente en splice_junctions, la aparición entre los valores más aumentad
 
 Este enfoque mejora la trazabilidad biológica y facilita la justificación de la replicación incluso antes de generar una visualización formal tipo Figura 3b.
 
+# 3. SCRIPT PARA REPLICAR FIGURA 3b.
+
+Inicio del script plot-fig3b-junctions.py para representación visual de las junctions principales implicadas en el posible exon skipping del exón 17. Primera versión centrada únicamente en splice junctions, sin incluir aún los parámetros de splice site/usage ni RNA-seq.
+
 # Entorno:
  - Python 3.13
  - Conda environment: alphagenome
