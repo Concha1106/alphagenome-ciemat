@@ -327,6 +327,49 @@ Este enfoque mejora la trazabilidad biológica y facilita la justificación de l
 
 Inicio del script plot-fig3b-junctions.py para representación visual de las junctions principales implicadas en el posible exon skipping del exón 17. Primera versión centrada únicamente en splice junctions, sin incluir aún los parámetros de splice site/usage ni RNA-seq.
 
+## 3.1 EXTENSIÓN DE LA VISUALIZACIÓN DE LA FIGURA 3b
+Ampliar la aproximación visual a la Figura 3b del artículo de AlphaGenome mediante scripts independientes para representar los principales outputs obtenidos con predict_variant():
+
+- splice junctions
+- RNA-seq
+- splice sites
+- splice site usage
+
+Además, se genera una primera figura integrada que combina los cuatro niveles de información en una única visualización.
+
+## Scripts:
+- scripts/2026-04-10-exp02-exon-skipping/plot-fig3b-junctions.py
+  Script actualizado. Representa las junctions principales REF y ALT mediante arcos.
+
+- scripts/2026-04-10-exp02-exon-skipping/plot-fig3b-rna-seq.py
+  Script nuevo. Representa la señal RNA-seq REF vs ALT tras suavizado con rolling mean.
+
+- scripts/2026-04-10-exp02-exon-skipping/plot-fig3b-splice-sites-and-usage.py
+  Script nuevo. Representa splice sites y splice site usage REF vs ALT.
+
+- scripts/2026-04-10-exp02-exon-skipping/plot-fig3b-complete.py
+  Script nuevo. Integra splice junctions, splice sites, splice site usage y RNA-seq en una única figura.
+
+## Entradas:
+- results/2026-04-10-exp02-exon-skipping/dlg1_splice_junctions_ref_vs_alt.tsv
+- results/2026-04-10-exp02-exon-skipping/dlg1_splice_sites_ref_vs_alt.tsv
+- results/2026-04-10-exp02-exon-skipping/dlg1_splice_site_usage_ref_vs_alt.tsv
+- results/2026-04-10-exp02-exon-skipping/dlg1_rna_seq_ref_vs_alt.tsv
+
+## Outputs generados:
+- results/2026-04-10-exp02-exon-skipping/dlg1_fig3b_arcs_only.png
+- results/2026-04-10-exp02-exon-skipping/dlg1_fig3b_rnaseq_only.png
+- results/2026-04-10-exp02-exon-skipping/dlg1_fig3b_sites_usage.png
+- results/2026-04-10-exp02-exon-skipping/dlg1_fig3b_complete.png
+
+## Interpretación:
+La estrategia de visualización se planteó de forma modular, generando primero figuras independientes para cada tipo de output y posteriormente una figura integrada.
+
+El panel de splice junctions permite visualizar las dos junctions REF que conectan con el exón 17 y la junction ALT que conecta directamente los exones flanqueantes, compatible con exon skipping.
+
+Los paneles de splice sites, splice site usage y RNA-seq permiten comparar visualmente las señales REF y ALT alrededor de la posición de la variante.
+
+La figura integrada constituye una primera aproximación visual a la reconstrucción de la Figura 3b del artículo, aunque todavía puede refinarse en aspectos estéticos y de interpretación.
 # Entorno:
  - Python 3.13
  - Conda environment: alphagenome

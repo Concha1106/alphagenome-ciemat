@@ -231,9 +231,28 @@ En particular, la aparición entre los valores más aumentados de una junction l
 
 Este refinamiento mejora la trazabilidad biológica del análisis y facilita la justificación de la replicación incluso antes de generar la figura final.
 
-# 3. SCRIPT PARA LA VISUALIZACIÓN DE LA FIGURA 3b.
+## 3. SCRIPTS PARA LA VISUALIZACIÓN DE LA FIGURA 3b.
 
-Se inició el desarrollo de una visualización simplificada de la Figura 3b del paper, centrada en la representación de splice junctions REF vs ALT mediante arcos entre coordenadas genómicas relevantes.
+En esta fase del experimento se han desarrollado varios scripts para la visualización de los efectos de la variante sobre distintos parámetros de splicing:
+
+- "plot-fig3b-junctions.py"  
+  Representación de las splice junctions predichas por AlphaGenome.
+
+- "plot-fig3b-rna-seq.py"  
+  Visualización de la señal de RNA-seq asociada a la variante.
+
+- "plot-fig3b-splice-sites-and-usage.py"  
+  Representación de los splice sites y su uso (splice site usage).
+
+- "plot-fig3b-complete.py"
+  Integración de todos los parámetros anteriores en una única figura, aproximando la Figura 3b del artículo.
+
+### ACTUALIZACIONES
+
+- Se ha modificado el script `plot-fig3b-junctions.py` para mejorar la representación gráfica de las junctions y se ha añadido una breve descripción.
+- Se han añadido nuevos scripts para representar de forma separada los distintos parámetros del modelo.
+- Se ha comenzado la integración de todos los outputs en una visualización conjunta.
+
 
 ## Archivos asociados
 
@@ -252,9 +271,9 @@ Se ha completado:
 - Cálculo de longitud de splice junctions y resumen de señal tibial por junction
 - Análisis exploratorio de sensibilidad posicional y tipo de mutación
 - Validación estructural mediante anotación GTF
-- Desarrollo del script predict_variant() para comparación REF vs ALT
+- Desarrollo del script predict_variant() para comparación REF vs AL y se ha añadido una breve descripción.
 - Generación de tablas listas para visualización final
+- Generación de visualización final tipo Figura 3b
 
 Pendiente:
-- Generación de visualización final tipo Figura 3b
 - Interpretación comparativa final de junctions perdidas/ganadas entre REF y ALT

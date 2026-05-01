@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 """
 Created on Wed Apr 29 14:29:38 2026
+Description: Script to graph the splices junction parameter of figure 3b
 
 @author: e6260
 """
@@ -11,6 +12,7 @@ from pathlib import Path
 import pandas as pd
 import matplotlib.pyplot as plt
 from matplotlib.patches import Arc
+from matplotlib.lines import Line2D
 
 
 # 1) Paths
@@ -50,9 +52,11 @@ plot_junc = junctions_of_interest.merge(
 
 fig, ax = plt.subplots(figsize=(10, 3))
 
+ax.axvline(197081044, color="gold", linewidth=1.5, linestyle="--")
+
 panel_y = {
-    "REF": 0.8,
-    "ALT": 1.8,
+    "REF": 1.00,
+    "ALT": 0.35,
 }
 
 for _, row in plot_junc.iterrows():
@@ -60,24 +64,46 @@ for _, row in plot_junc.iterrows():
     width = row["end"] - row["start"]
     y = panel_y[row["panel"]]
 
+    height = 0.4 if row["panel"] == "REF" else 0.55
+    color = "cornflowerblue" if row["panel"] == "REF" else "firebrick"
+    lw = 1+ abs(row["delta_alt_ref"]) * 4
+
+    
     arc = Arc(
         (x_mid, y),
         width=width,
-        height=0.8,
+        height=height,
         theta1=0,
         theta2=180,
-        linewidth=2,
+        color=color,
+        linewidth=lw,
     )
 
     ax.add_patch(arc)
-
+   
+    ax.text(
+    x_mid,
+    y + height / 2 + 0.08,
+    f"{abs(row['delta_alt_ref']):.2f}",
+    ha="center",
+    va="bottom",
+    fontsize=10,
+    )
 
 # 6) Basic formatting
 
-ax.set_xlim(197075000, 197087000)
-ax.set_ylim(0.2, 2.6)
+ax.set_xlim(197076044, 197086544)
+ax.ticklabel_format(style="plain", axis="x")
+ax.get_xaxis().get_major_formatter().set_useOffset(False)
+ax.set_ylim(0.2, 2.0)
 ax.set_yticks([])
 
+leyenda = [
+    Line2D([0], [0], color="cornflowerblue", linewidth=2.5, label="REF"),
+    Line2D([0], [0], color="firebrick",      linewidth=2.5, label="ALT"),
+]
+
+ax.legend(handles=leyenda, loc="upper right", frameon=False)
 plt.tight_layout()
 plt.savefig(out_png, dpi=300)
 plt.show()

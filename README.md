@@ -21,7 +21,7 @@ Para ejecutar los scripts es necesario:
 	```bash
 	conda env create -f environment/environment.yml
 	conda activate alphagenome
-
+	```
 	El entorno incluye Alphagenome con sus dependencias necesarias.
 
 - Disponer de una API key de AlphaGenome: 
@@ -35,7 +35,7 @@ Para ejecutar los scripts es necesario:
 
 No todos los scripts requieren una API key:
 
-	- Scripts de procesamiento de datos (por ejemplo, manejo de archivos GTF) funcionan en local y no requieren API key.
+	- Scripts de procesamiento de datos (por ejemplo, manejo de archivos GTF) o de visualización de gráficos funcionan en local y no requieren API key.
 	- Scripts que utilizan el modelo de AlphaGenome (por ejemplo, `score_variant`) sí requieren una API key configurada.
 
 Esto se debe a que el modelo se ejecuta a través de la API, mientras que otras utilidades son locales.
@@ -105,13 +105,34 @@ alphagenome-ciemat/
 - Creación de `.gitignore`
 - Mejora de documentación del proyecto
 
-### Día 4, 5 y 6
+### Días 4, 5 y 6
 - Lectura y familiarización con la documentación de alphagenome.
 - Elaboración y exploración del código para desarrollar el script para el análisis de parámetros relevantes en la evaluación de exon skipping.
 
-### Día 7 y 8
+### Días 7, 8 y 9
 - Pulimiento del script final exp02-score_exon_skipping.py
 - Obtención de tablas de interés como primeros resultados útiles para la interpretación de exon skipping.
+
+### Días 10 y 11 
+- Reflexión e interpretación de los parámetros obtenidos a partir del script final exp02-score_exon_skipping.py
+- Pruebas orientadas a comprender el análisis del parámetro combined_score en combinación con el splice_junctions, splice_sites y splice_sites_usage.
+- Exploración de la posible junction causante de exon skipping.
+
+### Día 12
+- Búsqueda de los exones del gen DLG1 en el genoma de referencia a través de Ensembl.
+- Confirmación de la coincidencia de las coordenada de inicio y final de la junction candidata con exones no consecutivos, dejando un exón intermedio fuera, dejando entrever la presencia de exon skipping.
+
+### Día 13 
+- Recuepración y reestructuración del git del proyecto a causa de un mensaje que mostraba que estaba corrupto.
+
+### Días 14, 15 y 16
+- Desarrollo de un script para ejecutar la función predict_variant() con el objetivo de obtener los valores de REF y ALT por separado y poder evaluar pérdidas o ganancias de junctions, así como los scores de parametros asociados que puedan servir de apoyo para confirmar la hipótesis y lograr representar la figura 3b del paper.
+
+### Días 17, 18 y 19
+- Desarrollo de tres scripts individuales que permiten graficar los parámetros splice_junctions, rna_seq y splice_sites/splice_site_usage por separado. 
+
+### Día 20
+- Desarrollo de un scripot para graficar conjuntamente los parámetros de splice_junctions, rna_seq, splice_sites y splice_site_usage por separado.
 
 ## Experimentos
 
@@ -135,6 +156,8 @@ Incluye:
 - README del experimento
 - runlog reproducible
 - uso de score_variant para análisis de splicing en script exp02-score_exon_skipping.py
+- uso de predict_variant para completar el análisis de splicing en script exp02-ref_vs_alt_prediction.py
+- scripts para replicar la figura 3b.
 
 ## Entorno
 
