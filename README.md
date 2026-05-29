@@ -132,7 +132,27 @@ alphagenome-ciemat/
 - Desarrollo de tres scripts individuales que permiten graficar los parámetros splice_junctions, rna_seq y splice_sites/splice_site_usage por separado. 
 
 ### Día 20
-- Desarrollo de un scripot para graficar conjuntamente los parámetros de splice_junctions, rna_seq, splice_sites y splice_site_usage por separado.
+- Desarrollo de un script para graficar conjuntamente los parámetros de splice_junctions, rna_seq, splice_sites y splice_site_usage por separado.
+
+### Dias 21-35
+
+- Estudio de la documentación oficial de AlphaGenome.
+- Profundización teórica y exploratoria de score_variant() y predict_variant(), así como familiarización con los métodos predict_sequence(), predict_interval() y scovre_variants(). 
+- Exploración de los diferentes output types y variant scorers disponibles.
+- Comprensión de señales biológicas relacionadas con splicing, expresión y regulación génica, estructura cromatínica y estructura 3D.
+- Análisis detallado de la Figura 3b del artículo de AlphaGenome.
+
+### Días 36 y 37
+- Reflexión sobre posibles estrategias para automatizar la evaluación de variantes novedosas.
+- Diseño conceptual de un pipeline general para análisis exploratorio de variantes.
+
+### Día 38
+
+- Inicio del experimento exp03.
+- Creación de la estructura reproducible del experimento.
+- Redacción del README específico del experimento.
+- Implementación inicial del pipeline mediante argparse.
+- Implementación de generación automática de runlogs.
 
 ## Experimentos
 
@@ -158,6 +178,35 @@ Incluye:
 - uso de score_variant para análisis de splicing en script exp02-score_exon_skipping.py
 - uso de predict_variant para completar el análisis de splicing en script exp02-ref_vs_alt_prediction.py
 - scripts para replicar la figura 3b.
+
+### exp03 - General Variant Evaluation Pipeline
+
+Objetivo:
+Desarrollar un pipeline general y automatizable para la evaluación exploratoria de variantes genómicas mediante AlphaGenome.
+
+A diferencia de exp02, centrado en un caso concreto de exon skipping, este experimento busca construir una arquitectura reutilizable capaz de:
+
+- recibir variantes genómicas como entrada;
+- ejecutar análisis mediante score_variant();
+- ejecutar análisis mediante predict_variant();
+- exportar resultados estructurados para su interpretación;
+- mantener trazabilidad mediante runlogs y control de versiones.
+
+Ubicación:
+experiments/2026-05-28-exp03-variant-pipeline/
+
+Estado actual:
+- estructura inicial del pipeline implementada;
+- lectura de argumentos mediante argparse;
+- generación automática de runlogs;
+- organización reproducible del experimento.
+
+Desarrollos futuros:
+- validación automática de variantes;
+- construcción de intervalos;
+- integración de score_variant();
+- integración de predict_variant();
+- priorización automática de señales biológicas.
 
 ## Entorno
 
