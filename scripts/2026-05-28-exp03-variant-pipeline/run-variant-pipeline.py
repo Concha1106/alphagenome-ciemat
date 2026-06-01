@@ -17,8 +17,11 @@ Description:
 import argparse
 from datetime import datetime
 from pathlib import Path
+
 from alphagenome.data import genome
 from alphagenome.models import dna_client
+from alphagenome_key import get_dna_model
+
 
 # -----------------------------------------------
 # 2) Argument parsing
@@ -182,10 +185,44 @@ def build_interval(variant, interval_size):
     return interval
 
 # -----------------------------------------------
+# 3) Alphagenome model call and Output configuration
+# -----------------------------------------------
+
+def create_dna_model():
+    """
+    Create AlphaGenome DNA model client using the project helper function.
+
+    The API key is read from the ALPHAGENOME_API_KEY environment variable
+    inside alphagenome_key.py.
+    """
+
+    dna_model = get_dna_model()
+
+    return dna_model
+
+def get_requested_outputs(output_types):
+    """
+    Define AlphaGenome output types requested for predict_variant.
+
+    If output_types is None, all AlphaGenome output types are used.
+    """
+
+    if output_types is None:
+        return list(dna_client.OutputType)
+
+    requested_outputs = []
+
+    for output_type in output_types:
+        requested_outputs.append(dna_client.OutputType[output_type])
+
+    return requested_outputs
+
+
+# -----------------------------------------------
 # X) Run log generation
 # -----------------------------------------------
 
-def write_runlog(args, output_dir, variant, interval):
+def write_runlog(args, output_dir, variant, interval, requested_outputs):
     """
     Write a basic runlog for the current execution.
 
@@ -250,6 +287,16 @@ def write_runlog(args, output_dir, variant, interval):
         runlog.write(f"interval_end_0based: {interval.end}\n")
         runlog.write(f"interval_width: {interval.width}\n")
 
+        runlog.write("\nAlphaGenome model configuration\n")
+        runlog.write("-" * 20 + "\n")
+        runlog.write("model_client: created with get_dna_model()\n")
+        runlog.write("api_key_source: ALPHAGENOME_API_KEY environment variable\n")
+        runlog.write(f"number_requested_outputs: {len(requested_outputs)}\n")
+        runlog.write(
+            "requested_outputs: "
+            + ", ".join([output.name for output in requested_outputs])
+            + "\n"
+        )
 
 # -----------------------------------------------
 # X) Main workflow
@@ -265,8 +312,13 @@ def main():
     variant = build_variant(args)
     interval = build_interval(variant, args.interval_size)
     
-    write_runlog(args, output_dir, variant, interval)
+    dna_model = create_dna_model()
+    requested_outputs = get_requested_outputs(args.output_types)
 
+    
+    write_runlog(args, output_dir, variant, interval, requested_outputs)
+    
+    print("AlphaGenome DNA model client created successfully.")
     print("Runlog created successfully.")
     
     
