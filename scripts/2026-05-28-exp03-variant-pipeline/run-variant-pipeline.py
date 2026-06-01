@@ -10,14 +10,20 @@ Description:
 
 @author: concha
 """
+# -----------------------------------------------
+# 1) Imports
+# -----------------------------------------------
+
 import argparse
 from datetime import datetime
 from pathlib import Path
+from alphagenome.data import genome
+from alphagenome.models import dna_client
 
+# -----------------------------------------------
+# 2) Argument parsing
+# -----------------------------------------------
 
-# ---------------------------------
-# 1) Argument parsing
-# ---------------------------------
 
 def parse_arguments():
     """
@@ -62,7 +68,7 @@ def parse_arguments():
 
 
     # Optional metadata filters: These filters generate extra views only.
-    # They must not removeinformation from complete output tables
+    # They must not remove information from complete output tables
 
     parser.add_argument("--ontology-curie", default=None, help="Optional ontology CURIE filter")
     parser.add_argument("--gtex-tissue", default=None, help="Optional GTEx tissue filter")
@@ -80,11 +86,106 @@ def parse_arguments():
     return parser.parse_args()
 
 
-# ---------------------------------
-# 2) Run log generation
-# ---------------------------------
 
-def write_runlog(args, output_dir):
+# -----------------------------------------------
+# 3) Variant validation and interval definition 
+# -----------------------------------------------
+
+def normalize_chromosome(chrom):
+    """
+    Normalize chromosome format.
+
+    Example:
+    - "3" becomes "chr3"
+    - "chr3" remains "chr3"
+    """
+
+    chrom = chrom.strip()
+
+    if not chrom.startswith("chr"):
+        chrom = "chr" + chrom
+
+    return chrom
+
+
+def normalize_allele(allele):
+    """
+    Normalize REF or ALT allele.
+
+    The allele is converted to uppercase and surrounding spaces are removed.
+    """
+
+    allele = allele.strip().upper()
+
+    return allele
+
+def validate_position(pos):
+    """
+    Validate genomic position.
+
+    The input position must be a positive integer.
+    AlphaGenome Variant.position uses 1-based coordinates.
+    """
+
+    if pos < 1:
+        raise ValueError("Genomic position must be a positive 1-based integer.")
+
+    return pos
+
+def build_variant(args):
+    """
+    Build an AlphaGenome Variant object from command-line arguments.
+
+    The Variant object is used as the main internal representation of the
+    genomic variant in the pipeline.
+    """
+
+    chrom = normalize_chromosome(args.chrom)
+    pos = validate_position(args.pos)
+    ref = normalize_allele(args.ref)
+    alt = normalize_allele(args.alt)
+
+    variant = genome.Variant(
+        chromosome=chrom,
+        position=pos,
+        reference_bases=ref,
+        alternate_bases=alt
+    )
+
+    return variant
+
+def get_sequence_length(interval_size):
+    """
+    Convert interval size argument into an AlphaGenome sequence length.
+    """
+
+    sequence_length_map = {
+        "1MB": dna_client.SEQUENCE_LENGTH_1MB,
+        "500KB": dna_client.SEQUENCE_LENGTH_500KB,
+        "100KB": dna_client.SEQUENCE_LENGTH_100KB,
+        "16KB": dna_client.SEQUENCE_LENGTH_16KB,
+    }
+
+    return sequence_length_map[interval_size]
+
+def build_interval(variant, interval_size):
+    """
+    Build AlphaGenome-compatible interval around the variant.
+    """
+
+    sequence_length = get_sequence_length(interval_size)
+
+    interval = variant.reference_interval.resize(
+        sequence_length
+    )
+
+    return interval
+
+# -----------------------------------------------
+# X) Run log generation
+# -----------------------------------------------
+
+def write_runlog(args, output_dir, variant, interval):
     """
     Write a basic runlog for the current execution.
 
@@ -128,12 +229,31 @@ def write_runlog(args, output_dir):
         runlog.write("Output directory\n")
         runlog.write("-" * 20 + "\n")
         runlog.write(f"{output_dir}\n")
+        
+        runlog.write("\nVariant classification\n")
+        runlog.write("-" * 20 + "\n")
+        runlog.write(f"is_snv: {variant.is_snv}\n")
+        runlog.write(f"is_insertion: {variant.is_insertion}\n")
+        runlog.write(f"is_deletion: {variant.is_deletion}\n")
+        runlog.write(f"is_indel: {variant.is_indel}\n")
+        runlog.write(f"is_structural: {variant.is_structural}\n")
+        runlog.write(f"is_frameshift: {variant.is_frameshift}\n")
+        runlog.write(f"variant_start_0based: {variant.start}\n")
+        runlog.write(f"variant_end_0based: {variant.end}\n")
+        
+        runlog.write("\nInterval definition\n")
+        runlog.write("-" * 20 + "\n")
+        runlog.write(f"reference_interval: {variant.reference_interval}\n")
+        runlog.write(f"input_interval: {interval}\n")
+        runlog.write(f"interval_chromosome: {interval.chromosome}\n")
+        runlog.write(f"interval_start_0based: {interval.start}\n")
+        runlog.write(f"interval_end_0based: {interval.end}\n")
+        runlog.write(f"interval_width: {interval.width}\n")
 
 
-
-# ---------------------------------
-# 3) Main workflow
-# ---------------------------------
+# -----------------------------------------------
+# X) Main workflow
+# -----------------------------------------------
 
 def main():
 
@@ -141,10 +261,15 @@ def main():
 
     output_dir = Path(args.output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
-
-    write_runlog(args, output_dir)
+    
+    variant = build_variant(args)
+    interval = build_interval(variant, args.interval_size)
+    
+    write_runlog(args, output_dir, variant, interval)
 
     print("Runlog created successfully.")
+    
+    
 
 
 if __name__ == "__main__":
