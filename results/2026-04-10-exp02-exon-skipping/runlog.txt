@@ -216,7 +216,7 @@ Esto permite identificar de forma más directa:
 ## Entradas:
 - Variante: chr3:197081044 TACTC>T
 - Contexto tisular: UBERON:0007610 / GTEx Artery_Tibial
-- Región recortada para futura visualización: chr3:197075000-197087000
+- Región recortada para futura visualización: chr3:197076044-197086544
 - Anotación GTF local: raw-data/2026-04-10-exp02-exon-skipping/Homo_sapiens.GRCh38.115.gtf
 
 ## Scripts:

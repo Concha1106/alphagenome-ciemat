@@ -27,6 +27,7 @@ from alphagenome.models.dna_output import OutputType
 from alphagenome_key import get_dna_model
 
 
+
 # 1) Define variant and prediction interval
 
 variant = genome.Variant(

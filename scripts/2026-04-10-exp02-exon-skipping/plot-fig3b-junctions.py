@@ -66,7 +66,7 @@ for _, row in plot_junc.iterrows():
 
     height = 0.4 if row["panel"] == "REF" else 0.55
     color = "cornflowerblue" if row["panel"] == "REF" else "firebrick"
-    lw = 1+ abs(row["delta_alt_ref"]) * 4
+    lw = 1+ abs(row["delta_alt_ref"]) * 4 #escalado de datos??
 
     
     arc = Arc(

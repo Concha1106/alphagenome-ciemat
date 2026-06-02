@@ -126,7 +126,7 @@ Dado que DLG1 se encuentra anotado en hebra negativa ('-'), las salidas relacion
 
 Además, para facilitar la futura visualización, los datos tipo 'TrackData' se recortaron a una región local alrededor del evento de interés:
 
-chr3:197075000–197087000
+chr3:197076044-197086544
 
 Esta región incluye los exones implicados en la hipótesis de exon skipping y permite comparar de forma más clara las diferencias entre REF y ALT.
 
@@ -138,6 +138,42 @@ Desde la raíz del proyecto:
 PYTHONPATH=. python scripts/2026-04-10-exp02-exon-skipping/exp02-ref_vs_alt_prediction.py 
 ```
 Nota: Se ejecuta con PYTHONPATH=. para que Python pueda encontrar alphagenome_key.py desde la raíz del proyecto.
+
+### Resultados:
+El script genera tablas en formato '.tsv' listas para graficar:
+
+- 'dlg1_splice_junctions_ref_vs_alt.tsv'
+- 'dlg1_splice_site_usage_ref_vs_alt.tsv'
+- 'dlg1_splice_sites_ref_vs_alt.tsv'
+- 'dlg1_rna_seq_ref_vs_alt.tsv'
+
+Estas salidas permitirán analizar con mayor precisión qué junctions se pierden, cuáles aparecen de novo y cómo cambia la señal de uso de sitios de splicing, aportando una validación más directa de la hipótesis de exon skipping descrita en el artículo.
+
+- Refinamiento de interpretación mediante tablas Top10: Para facilitar la interpretación biológica de los resultados obtenidos con predict_variant(), se añadieron tablas resumen que priorizan los eventoscon mayor cambio entre ALT y REF (delta_alt_ref)
+
+Aunque las tablas completas permiten un análisis exhaustivo, su tamaño dificulta la identificación rápida de los eventos más relevantes. Por ello, se generaron tablas adicionales con los 10 eventos que más aumentan y los 10 que más disminuyen tras aplicar la variante.
+
+Esto permite detectar de forma más directa:
+
+- splice junctions ganadas o perdidas
+- splice sites debilitados o reforzados
+- cambios relevantes en splice site usage
+
+Especialmente en el caso de splice_junctions, este enfoque ayuda a localizar rápidamente la aparición de junctions largas compatibles con exon skipping.
+Se generaron los siguientes archivos: 
+
+- dlg1_splice_junctions_top10_increased_alt_vs_ref.tsv
+- dlg1_splice_junctions_top10_decreased_alt_vs_ref.tsv
+- dlg1_splice_site_usage_top10_increased_alt_vs_ref.tsv
+- dlg1_splice_site_usage_top10_decreased_alt_vs_ref.tsv
+- dlg1_splice_sites_top10_increased_alt_vs_ref.tsv
+- dlg1_splice_sites_top10_decreased_alt_vs_ref.tsv
+
+Estas tablas resumen permiten priorizar las señales más relevantes antes de construir la visualización final tipo Figura 3b.
+
+En particular, la aparición entre los valores más aumentados de una junction larga que conecta directamente los exones flanqueantes 197076685-197085579 refuerza la hipótesis de exon skipping del exón 17, ya que implica la omisión del exón intermedio y reproduce estructuralmente el fenómeno descrito en el paper
+
+Este refinamiento mejora la trazabilidad biológica del análisis y facilita la justificación de la replicación incluso antes de generar la figura final.
 
 ### Identificación estructural de exones implicados
 
@@ -195,41 +231,6 @@ La aparición de la junction:
 
 indica una conexión directa entre los exones 18 y 16, omitiendo el exón intermedio (exón 17). Esto es consistente con un evento de exon skipping, exactamente el fenómeno descrito en la Figura 3b del paper.
 
-### Resultados:
-El script genera tablas en formato '.tsv' listas para graficar:
-
-- 'dlg1_splice_junctions_ref_vs_alt.tsv'
-- 'dlg1_splice_site_usage_ref_vs_alt.tsv'
-- 'dlg1_splice_sites_ref_vs_alt.tsv'
-- 'dlg1_rna_seq_ref_vs_alt.tsv'
-
-Estas salidas permitirán analizar con mayor precisión qué junctions se pierden, cuáles aparecen de novo y cómo cambia la señal de uso de sitios de splicing, aportando una validación más directa de la hipótesis de exon skipping descrita en el artículo.
-
-- Refinamiento de interpretación mediante tablas Top10: Para facilitar la interpretación biológica de los resultados obtenidos con predict_variant(), se añadieron tablas resumen que priorizan los eventoscon mayor cambio entre ALT y REF (delta_alt_ref)
-
-Aunque las tablas completas permiten un análisis exhaustivo, su tamaño dificulta la identificación rápida de los eventos más relevantes. Por ello, se generaron tablas adicionales con los 10 eventos que más aumentan y los 10 que más disminuyen tras aplicar la variante.
-
-Esto permite detectar de forma más directa:
-
-- splice junctions ganadas o perdidas
-- splice sites debilitados o reforzados
-- cambios relevantes en splice site usage
-
-Especialmente en el caso de splice_junctions, este enfoque ayuda a localizar rápidamente la aparición de junctions largas compatibles con exon skipping.
-Se generaron los siguientes archivos: 
-
-- dlg1_splice_junctions_top10_increased_alt_vs_ref.tsv
-- dlg1_splice_junctions_top10_decreased_alt_vs_ref.tsv
-- dlg1_splice_site_usage_top10_increased_alt_vs_ref.tsv
-- dlg1_splice_site_usage_top10_decreased_alt_vs_ref.tsv
-- dlg1_splice_sites_top10_increased_alt_vs_ref.tsv
-- dlg1_splice_sites_top10_decreased_alt_vs_ref.tsv
-
-Estas tablas resumen permiten priorizar las señales más relevantes antes de construir la visualización final tipo Figura 3b.
-
-En particular, la aparición entre los valores más aumentados de una junction larga que conecta directamente los exones flanqueantes 197076685-197085579 refuerza la hipótesis de exon skipping del exón 17, ya que implica la omisión del exón intermedio y reproduce estructuralmente el fenómeno descrito en el paper
-
-Este refinamiento mejora la trazabilidad biológica del análisis y facilita la justificación de la replicación incluso antes de generar la figura final.
 
 ## 3. SCRIPTS PARA LA VISUALIZACIÓN DE LA FIGURA 3b.
 
@@ -246,6 +247,7 @@ En esta fase del experimento se han desarrollado varios scripts para la visualiz
 
 - "plot-fig3b-complete.py"
   Integración de todos los parámetros anteriores en una única figura, aproximando la Figura 3b del artículo.
+
 
 ### ACTUALIZACIONES
 

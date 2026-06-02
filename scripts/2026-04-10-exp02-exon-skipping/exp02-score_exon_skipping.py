@@ -45,6 +45,7 @@ scores = model.score_variant(
     ],
 )
 
+
 # 5) Separate results
 ad_usage = scores[0]
 ad_sites = scores[1]
