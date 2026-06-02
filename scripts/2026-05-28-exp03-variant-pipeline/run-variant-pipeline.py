@@ -17,6 +17,7 @@ Description:
 import argparse
 from datetime import datetime
 from pathlib import Path
+import pandas as pd
 
 from alphagenome.data import genome
 from alphagenome.models import dna_client, variant_scorers
@@ -47,7 +48,8 @@ def parse_arguments():
     parser.add_argument("--pos", required=True, type=int, help="Genomic position, 1-based")
     parser.add_argument("--ref", required=True, help="Reference allele")
     parser.add_argument("--alt", required=True, help="Alternative allele")
-
+    parser.add_argument("--ontology-curie", required=True, help="Ontology CURIE used for predict_variant, e.g. UBERON:0007610")
+    
     # General execution options.
     parser.add_argument(
         "--interval-size",
@@ -73,7 +75,6 @@ def parse_arguments():
     # Optional metadata filters: These filters generate extra views only.
     # They must not remove information from complete output tables
 
-    parser.add_argument("--ontology-curie", default=None, help="Optional ontology CURIE filter")
     parser.add_argument("--gtex-tissue", default=None, help="Optional GTEx tissue filter")
     parser.add_argument("--biosample-name", default=None, help="Optional biosample name filter")
     parser.add_argument("--gene-name", default=None, help="Optional gene name filter")
@@ -217,6 +218,16 @@ def get_requested_outputs(output_types):
 
     return requested_outputs
 
+def get_ontology_terms(ontology_curie):
+    """
+    Define ontology terms for predict_variant.
+
+    In the current MVP, one ontology CURIE is required to avoid requesting
+    predictions for all available ontologies.
+    """
+
+    return [ontology_curie]
+
 # -----------------------------------------------
 # 5) Score variant analysis
 # -----------------------------------------------
@@ -264,11 +275,124 @@ def export_score_tables(scores_df, output_dir):
     )
 
     return all_scores_path
+
 # -----------------------------------------------
-# 6) Run log generation
+# 6) Predict variant analysis
 # -----------------------------------------------
 
-def write_runlog(args, output_dir, variant, interval, requested_outputs):
+def run_predict_variant(dna_model, interval, variant, requested_outputs, ontology_terms):
+    """
+    Run AlphaGenome predict_variant() for REF and ALT alleles.
+
+    In the current MVP, ontology_terms must be provided to avoid requesting
+    all available ontology-specific predictions.
+    """
+
+    prediction = dna_model.predict_variant(
+        interval=interval,
+        variant=variant,
+        requested_outputs=requested_outputs,
+        ontology_terms=ontology_terms
+    )
+
+    return prediction
+
+def export_one_trackdata_output(prediction, output_name, output_dir):
+    """
+    Export REF, ALT and delta values for one TrackData output.
+
+    This first version is intended to validate the export logic using one
+    output, for example rna_seq.
+    """
+
+    ref_data = getattr(prediction.reference, output_name)
+    alt_data = getattr(prediction.alternate, output_name)
+
+    values_ref = ref_data.values
+    values_alt = alt_data.values
+
+    metadata = ref_data.metadata.copy()
+
+    rows = []
+
+    for track_index in range(values_ref.shape[1]):
+        track_metadata = metadata.iloc[track_index].to_dict()
+
+        for position_index in range(values_ref.shape[0]):
+            ref_value = values_ref[position_index, track_index]
+            alt_value = values_alt[position_index, track_index]
+
+            row = {
+                "output_name": output_name,
+                "position_index": position_index,
+                "track_index": track_index,
+                "ref_value": ref_value,
+                "alt_value": alt_value,
+                "delta_alt_ref": alt_value - ref_value,
+            }
+
+            row.update(track_metadata)
+
+            rows.append(row)
+
+    output_df = pd.DataFrame(rows)
+
+    output_path = output_dir / f"predict_variant_{output_name}.tsv"
+
+    output_df.to_csv(
+        output_path,
+        sep="\t",
+        index=False
+    )
+
+    return output_path
+
+
+def export_all_trackdata_outputs(prediction, output_dir):
+    """
+    Export REF, ALT and delta values for all TrackData-like outputs.
+
+    Outputs with zero tracks are skipped.
+    """
+
+    trackdata_outputs = [
+        "atac",
+        "cage",
+        "chip_histone",
+        "chip_tf",
+        "dnase",
+        "procap",
+        "rna_seq",
+        "splice_sites",
+        "splice_site_usage",
+    ]
+
+    exported_paths = []
+
+    for output_name in trackdata_outputs:
+        ref_data = getattr(prediction.reference, output_name)
+
+        if ref_data.values.shape[1] == 0:
+            print(f"Skipping {output_name}: no tracks available.")
+            continue
+
+        output_path = export_one_trackdata_output(
+            prediction,
+            output_name,
+            output_dir
+        )
+
+        exported_paths.append(output_path)
+
+    return exported_paths
+
+
+
+# -----------------------------------------------
+# 7) Run log generation
+# -----------------------------------------------
+
+def write_runlog(args, output_dir, variant, interval, requested_outputs, ontology_terms):
     """
     Write a basic runlog for the current execution.
 
@@ -294,10 +418,12 @@ def write_runlog(args, output_dir, variant, interval, requested_outputs):
         runlog.write(f"position_1based: {args.pos}\n")
         runlog.write(f"reference: {args.ref}\n")
         runlog.write(f"alternate: {args.alt}\n\n")
+        
 
         runlog.write("Execution parameters\n")
         runlog.write("-" * 20 + "\n")
         runlog.write(f"interval_size: {args.interval_size}\n")
+        runlog.write(f"predict_variant_ontology_terms: {ontology_terms}\n")
         runlog.write(f"top_n: {args.top_n}\n")
         runlog.write(f"output_types: {args.output_types}\n\n")
 
@@ -347,9 +473,10 @@ def write_runlog(args, output_dir, variant, interval, requested_outputs):
         runlog.write("\nGenerated files\n")
         runlog.write("-" * 20 + "\n")
         runlog.write("score_variant_all.tsv\n")
+        runlog.write("predict_variant TrackData tables generated by output type\n")
 
 # -----------------------------------------------
-# 7) Main workflow
+# 8) Main workflow
 # -----------------------------------------------
 
 def main():
@@ -368,15 +495,23 @@ def main():
     scores = run_score_variant(dna_model, interval, variant)
     scores_df = tidy_score_results(scores)
     score_table_path = export_score_tables(scores_df, output_dir)
-
     
-    write_runlog(args, output_dir, variant, interval, requested_outputs)
+    ontology_terms = get_ontology_terms(args.ontology_curie)
+    prediction = run_predict_variant(dna_model, interval, variant, requested_outputs, ontology_terms)
+    trackdata_paths = export_all_trackdata_outputs(prediction, output_dir)
+   
+    
+    
+    write_runlog(args, output_dir, variant, interval, requested_outputs, ontology_terms)
     
     print("AlphaGenome DNA model client created successfully.")
     print("score_variant() completed successfully.")
     print(f"Complete score table saved to: {score_table_path}")
+    print("predict_variant() completed successfully.")
+    print(f"TrackData prediction tables saved: {len(trackdata_paths)}")
     print("Runlog created successfully.")
-    
+        
+
 
 
 if __name__ == "__main__":
