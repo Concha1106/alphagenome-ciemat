@@ -15,7 +15,7 @@ De este modo, se pretende desarrollar un flujo de trabajo reproducible capaz de:
 - exportar resultados estructurados para su posterior interpretación.
 
 Para asegurar la trazabilidad y reproducibilidad el script se desarrollará siguiendo unos criterios similares a los utilizados en los experimentos previos:
-registrode parámetros usados, variante evaluada,outputs solicitados, archivos generados, etc. Esto quedará registrado en archivos runlog.txt de este proyecto, el manifes-data.tsv y Git.
+registro de parámetros usados, variante evaluada,outputs solicitados, archivos generados, etc. Esto quedará registrado en archivos runlog.txt de este proyecto, el manifes-data.tsv y Git.
 
 ## Estructura pipeline
 
@@ -30,12 +30,13 @@ El pipeline se desarrollará en diferentes fases que modularán lo siguiente:
 7. Exportación automática de tablas resumen
 8. Priorización automática de señales biológicas (mejora a desarrollar en futuro).
 
-### Inputs pl
+### Inputs
 - position  
 - reference (REF)
 - alternate 
 Argumentos opcionales previstos
 - interval size
+
 ### Outputs previstos
 
 El pipeline generará:
@@ -46,6 +47,18 @@ El pipeline generará:
 
 ### Estado
 
-Fase inicial de diseño e implementación del pipeline.
+Pipeline funcional en versión inicial.
 
-Actualmente se está trabajando en la definición de arquitectura general para alcanzar una organización reproducible del experimento.
+Actualmente el script permite:
+
+- recibir una variante mediante argumentos de línea de comandos;
+- construir el objeto `Variant` de AlphaGenome;
+- construir el intervalo de entrada usando `variant.reference_interval.resize()`;
+- ejecutar `score_variant()`;
+- exportar la tabla completa `score_variant_all.tsv`;
+- ejecutar `predict_variant()` para una ontología concreta indicada mediante `--ontology-curie`;
+- exportar predicciones REF, ALT y delta para salidas tipo TrackData;
+- exportar predicciones REF, ALT y delta para splice junctions;
+- gestionar contact maps, exportándolos solo cuando existan tracks disponibles;
+- generar tablas top positivas y negativas por `output_type`;
+- registrar parámetros de ejecución en `runlog.txt`.

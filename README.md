@@ -154,6 +154,20 @@ alphagenome-ciemat/
 - Implementación inicial del pipeline mediante argparse.
 - Implementación de generación automática de runlogs.
 
+### Días 39, 40 y 41
+
+- Desarrollo de la fase de validación y representación interna de variantes para exp03.
+- Construcción del objeto `Variant` de AlphaGenome a partir de cromosoma, posición, REF y ALT.
+- Construcción del intervalo de entrada mediante `variant.reference_interval.resize()` usando longitudes compatibles con AlphaGenome.
+- Configuración del cliente de AlphaGenome mediante `get_dna_model()`.
+- Ejecución de `score_variant()` y exportación de `score_variant_all.tsv`.
+- Ejecución de `predict_variant()` restringido a una ontología concreta mediante `--ontology-curie`, para evitar solicitar todas las ontologías disponibles debido a posible saturación del sistema.
+- Exportación de predicciones REF, ALT y delta para:
+  - TrackData;
+  - splice junctions;
+  - contact maps cuando existan tracks disponibles.
+- Generación de tablas top positivas y negativas por `output_type` para facilitar la interpretación en Excel.
+
 ## Experimentos
 
 ### exp01 — Installation Test
@@ -198,15 +212,22 @@ experiments/2026-05-28-exp03-variant-pipeline/
 Estado actual:
 - estructura inicial del pipeline implementada;
 - lectura de argumentos mediante argparse;
-- generación automática de runlogs;
-- organización reproducible del experimento.
+- validación básica de variante;
+- construcción de intervalo mediante AlphaGenome;
+- conexión con el modelo usando API key desde variable de entorno;
+- ejecución de score_variant();
+- ejecución de predict_variant() para una ontología concreta;
+- exportación de tablas completas REF/ALT/delta;
+- exportación de tablas top positivas y negativas por output type;
+- generación automática de runlogs.
 
 Desarrollos futuros:
-- validación automática de variantes;
-- construcción de intervalos;
-- integración de score_variant();
-- integración de predict_variant();
-- priorización automática de señales biológicas.
+- mejorar formato de exportación para uso en Excel, incluyendo posible formato wide;
+- añadir resúmenes específicos por modalidad biológica;
+- optimizar exportación de archivos grandes;
+- permitir modos alternativos de ejecución de predict_variant();
+- añadir priorización automática basada en score_variant();
+- añadir visualizaciones básicas.
 
 ## Entorno
 
