@@ -299,10 +299,8 @@ def run_predict_variant(dna_model, interval, variant, requested_outputs, ontolog
 
 def export_one_trackdata_output(prediction, output_name, output_dir):
     """
-    Export REF, ALT and delta values for one TrackData output.
-
-    This first version is intended to validate the export logic using one
-    output, for example rna_seq.
+    Export REF, ALT and delta values for one TrackData output using chunked
+    track-level writing to reduce memory usage.
     """
 
     ref_data = getattr(prediction.reference, output_name)
@@ -310,45 +308,50 @@ def export_one_trackdata_output(prediction, output_name, output_dir):
 
     values_ref = ref_data.values
     values_alt = alt_data.values
-
     metadata = ref_data.metadata.copy()
 
-    rows = []
+    output_path = output_dir / f"predict_variant_{output_name}.tsv"
+
+    first_write = True
 
     for track_index in range(values_ref.shape[1]):
         track_metadata = metadata.iloc[track_index].to_dict()
 
-        for position_index in range(values_ref.shape[0]):
-            ref_value = values_ref[position_index, track_index]
-            alt_value = values_alt[position_index, track_index]
+        n_positions = values_ref.shape[0]
 
-            genomic_position_0based = ref_data.interval.start + position_index
-            genomic_position_1based = genomic_position_0based + 1
+        position_index = range(n_positions)
 
-            row = {
-                "output_name": output_name,
-                "position_index": position_index,
-                "genomic_position_0based": genomic_position_0based,
-                "genomic_position_1based": genomic_position_1based,
-                "chromosome": ref_data.interval.chromosome,
-                "track_index": track_index,
-                "ref_value": ref_value,
-                "alt_value": alt_value,
-                "delta_alt_ref": alt_value - ref_value,
-                }
-            row.update(track_metadata)
+        ref_values = values_ref[:, track_index]
+        alt_values = values_alt[:, track_index]
 
-            rows.append(row)
+        genomic_position_0based = (
+            ref_data.interval.start + pd.Series(position_index)
+        )
 
-    output_df = pd.DataFrame(rows)
+        output_df = pd.DataFrame({
+            "output_name": output_name,
+            "position_index": position_index,
+            "genomic_position_0based": genomic_position_0based,
+            "genomic_position_1based": genomic_position_0based + 1,
+            "chromosome": ref_data.interval.chromosome,
+            "track_index": track_index,
+            "ref_value": ref_values,
+            "alt_value": alt_values,
+            "delta_alt_ref": alt_values - ref_values,
+        })
 
-    output_path = output_dir / f"predict_variant_{output_name}.tsv"
+        for column_name, column_value in track_metadata.items():
+            output_df[column_name] = column_value
 
-    output_df.to_csv(
-        output_path,
-        sep="\t",
-        index=False
-    )
+        output_df.to_csv(
+            output_path,
+            sep="\t",
+            index=False,
+            mode="w" if first_write else "a",
+            header=first_write
+        )
+
+        first_write = False
 
     return output_path
 
@@ -376,7 +379,11 @@ def export_all_trackdata_outputs(prediction, output_dir):
 
     for output_name in trackdata_outputs:
         ref_data = getattr(prediction.reference, output_name)
-
+       
+        if ref_data is None:
+        print(f"Skipping {output_name}: output was not requested.")
+        continue
+    
         if ref_data.values.shape[1] == 0:
             print(f"Skipping {output_name}: no tracks available.")
             continue
@@ -401,6 +408,10 @@ def export_splice_junctions(prediction, output_dir):
 
     ref_data = prediction.reference.splice_junctions
     alt_data = prediction.alternate.splice_junctions
+    
+    if ref_data is None or alt_data is None:
+    print("Skipping splice_junctions: output was not requested.")
+    return None
 
     values_ref = ref_data.values
     values_alt = alt_data.values
@@ -470,6 +481,10 @@ def export_contact_maps(prediction, output_dir):
 
     ref_data = prediction.reference.contact_maps
     alt_data = prediction.alternate.contact_maps
+
+    if ref_data is None or alt_data is None:
+        print("Skipping contact_maps: output was not requested.")
+        return None
 
     values_ref = ref_data.values
     values_alt = alt_data.values

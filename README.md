@@ -168,6 +168,14 @@ alphagenome-ciemat/
   - contact maps cuando existan tracks disponibles.
 - Generación de tablas top positivas y negativas por `output_type` para facilitar la interpretación en Excel.
 
+### Día 42
+
+- Pruebas exploratorias del pipeline exp03 con una variante compleja en SEC23B.
+- Selección inicial de ontologías candidatas (CL:0000558, UBERON:0002371 y CL:0001059) a partir de metadatos de AlphaGenome y relevancia biológica eritroide/hematopoyética.
+- Identificación de cuello de botella de memoria en la exportación local de `predict_variant()`.
+- Optimización inicial de exportación TrackData mediante escritura progresiva por track.
+- Mejora del manejo de `--output-types` para permitir ejecuciones parciales por modalidad.
+
 ## Experimentos
 
 ### exp01 — Installation Test

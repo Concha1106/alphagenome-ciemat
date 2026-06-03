@@ -62,3 +62,13 @@ Actualmente el script permite:
 - gestionar contact maps, exportándolos solo cuando existan tracks disponibles;
 - generar tablas top positivas y negativas por `output_type`;
 - registrar parámetros de ejecución en `runlog.txt`.
+
+### Actualización: optimización de exportación predict_variant
+
+Se identificó un cuello de botella de memoria durante la exportación local de predicciones generadas por `predict_variant()`, especialmente al trabajar con ontologías con múltiples tracks y ventanas grandes.
+
+Para reducir el uso de RAM, la exportación de salidas tipo TrackData se modificó para escribir los resultados progresivamente por track, en lugar de acumular todas las filas en memoria antes de generar el archivo final.
+
+Además, se mejoró el manejo de ejecuciones parciales mediante `--output-types`, permitiendo solicitar únicamente modalidades concretas, como `CAGE` o `SPLICE_SITES`, sin que el exportador falle al encontrar outputs no solicitados.
+
+
