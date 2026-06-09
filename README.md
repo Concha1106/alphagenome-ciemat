@@ -176,6 +176,15 @@ alphagenome-ciemat/
 - Optimización inicial de exportación TrackData mediante escritura progresiva por track.
 - Mejora del manejo de `--output-types` para permitir ejecuciones parciales por modalidad.
 
+### Días 43, 44 y 45
+
+- Mejora del pipeline exp03 para facilitar la interpretación de variantes complejas.
+- Incorporación de métricas de longitud de variante y longitud de junctions.
+- Cálculo de una métrica integrada de splicing basada en `score_variant()`.
+- Exportación de `splice_sites` en formato wide, reduciendo la complejidad de visualización en Excel.
+- Generación de vistas locales alrededor de la variante.
+- Implementación de `predict_variant_track_summary.tsv` para resumir el impacto por track y orientar la interpretación de outputs con múltiples señales.
+
 ## Experimentos
 
 ### exp01 — Installation Test

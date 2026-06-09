@@ -328,85 +328,112 @@ def tidy_score_results(scores):
 
 def compute_merged_splicing_score(scores_df):
     """
-    Compute AlphaGenome merged splicing score from score_variant results.
+    Compute AlphaGenome merged splicing score.
 
-    According to the AlphaGenome splicing variant scoring tutorial:
-
-    alphagenome_splicing =
-        max(SPLICE_SITES)
-        + max(SPLICE_SITE_USAGE)
-        + max(SPLICE_JUNCTIONS) / 5.0
-
-    The metric is calculated from raw_score values and only when the three
-    required splicing outputs are available.
+    SPLICE_SITES is treated as variant-level because it may not be associated
+    with ontology_curie. SPLICE_SITE_USAGE and SPLICE_JUNCTIONS are calculated
+    per ontology when available.
     """
 
-    required_outputs = [
-        "SPLICE_SITES",
-        "SPLICE_SITE_USAGE",
-        "SPLICE_JUNCTIONS",
-    ]
-
     splicing_df = scores_df[
-        scores_df["output_type"].isin(required_outputs)
+        scores_df["output_type"].isin([
+            "SPLICE_SITES",
+            "SPLICE_SITE_USAGE",
+            "SPLICE_JUNCTIONS",
+        ])
     ].copy()
 
     if splicing_df.empty:
         return pd.DataFrame([{
             "variant_id": None,
+            "ontology_curie": None,
             "max_splice_sites": None,
             "max_splice_site_usage": None,
             "max_splice_junctions": None,
             "alphagenome_splicing": None,
             "alphagenome_splicing_status": "not_calculated_no_splicing_outputs",
-            "missing_outputs": ",".join(required_outputs),
+            "missing_outputs": "SPLICE_SITES,SPLICE_SITE_USAGE,SPLICE_JUNCTIONS",
         }])
 
-    splicing_df["variant_id_text"] = splicing_df["variant_id"].astype(str)
+    splicing_df["variant_id"] = splicing_df["variant_id"].astype(str)
+    splicing_df["abs_raw_score"] = splicing_df["raw_score"].abs()
 
-    splicing_scores = (
-        splicing_df
-        .groupby(["variant_id_text", "output_type"])["raw_score"]
+    sites = (
+        splicing_df[splicing_df["output_type"] == "SPLICE_SITES"]
+        .groupby("variant_id")["abs_raw_score"]
         .max()
         .reset_index()
-        .pivot(
-            index="variant_id_text",
-            columns="output_type",
-            values="raw_score"
-            )
-        )
-
-    missing_outputs = [
-        output_type
-        for output_type in required_outputs
-        if output_type not in splicing_scores.columns
-    ]
-
-    splicing_scores = splicing_scores.rename(
-        columns={
-            "SPLICE_SITES": "max_splice_sites",
-            "SPLICE_SITE_USAGE": "max_splice_site_usage",
-            "SPLICE_JUNCTIONS": "max_splice_junctions",
-        }
+        .rename(columns={"abs_raw_score": "max_splice_sites"})
     )
 
-    if missing_outputs:
-        splicing_scores["alphagenome_splicing"] = None
-        splicing_scores["alphagenome_splicing_status"] = "not_calculated_missing_outputs"
-        splicing_scores["missing_outputs"] = ",".join(missing_outputs)
-    else:
-        splicing_scores["alphagenome_splicing"] = (
-            splicing_scores["max_splice_sites"]
-            + splicing_scores["max_splice_site_usage"]
-            + splicing_scores["max_splice_junctions"] / 5.0
+    ontology_df = splicing_df[
+        splicing_df["output_type"].isin([
+            "SPLICE_SITE_USAGE",
+            "SPLICE_JUNCTIONS",
+        ])
+    ].copy()
+
+    ontology_df["ontology_curie"] = ontology_df["ontology_curie"].fillna("NO_ONTOLOGY")
+
+    ontology_scores = (
+        ontology_df
+        .groupby(["variant_id", "ontology_curie", "output_type"])["abs_raw_score"]
+        .max()
+        .reset_index()
+        .pivot_table(
+            index=["variant_id", "ontology_curie"],
+            columns="output_type",
+            values="abs_raw_score",
+            aggfunc="max"
         )
-        splicing_scores["alphagenome_splicing_status"] = "calculated"
-        splicing_scores["missing_outputs"] = ""
+        .reset_index()
+    )
 
-    return splicing_scores.reset_index()
-    splicing_scores = splicing_scores.rename(columns={"variant_id_text": "variant_id"})
+    ontology_scores = ontology_scores.rename(columns={
+        "SPLICE_SITE_USAGE": "max_splice_site_usage",
+        "SPLICE_JUNCTIONS": "max_splice_junctions",
+    })
 
-    return splicing_scores
+    merged = ontology_scores.merge(
+        sites,
+        on="variant_id",
+        how="left"
+    )
+
+    for col in [
+        "max_splice_sites",
+        "max_splice_site_usage",
+        "max_splice_junctions",
+    ]:
+        if col not in merged.columns:
+            merged[col] = pd.NA
+
+    merged["missing_outputs"] = ""
+
+    merged.loc[merged["max_splice_sites"].isna(), "missing_outputs"] += "SPLICE_SITES,"
+    merged.loc[merged["max_splice_site_usage"].isna(), "missing_outputs"] += "SPLICE_SITE_USAGE,"
+    merged.loc[merged["max_splice_junctions"].isna(), "missing_outputs"] += "SPLICE_JUNCTIONS,"
+
+    merged["missing_outputs"] = merged["missing_outputs"].str.rstrip(",")
+
+    can_calculate = merged["missing_outputs"] == ""
+
+    merged["alphagenome_splicing"] = pd.NA
+
+    merged.loc[can_calculate, "alphagenome_splicing"] = (
+        merged.loc[can_calculate, "max_splice_sites"]
+        + merged.loc[can_calculate, "max_splice_site_usage"]
+        + merged.loc[can_calculate, "max_splice_junctions"] / 5.0
+    )
+
+    merged["alphagenome_splicing_status"] = "not_calculated_missing_outputs"
+    merged.loc[can_calculate, "alphagenome_splicing_status"] = "calculated"
+
+    return merged.sort_values(
+        by="alphagenome_splicing",
+        ascending=False,
+        na_position="last"
+    )
 
 def export_score_tables(scores_df, merged_splicing_df, output_dir):
     """
@@ -592,8 +619,8 @@ def export_splice_sites_wide_from_prediction(prediction, output_dir):
         site_type = track_metadata.get("name", f"track{track_index}")
         strand = track_metadata.get("strand", ".")
 
-        safe_track_name = f"{site_type}_{strand}".replace("+", "plus").replace("-", "minus")
-
+        safe_track_name = f"track{track_index}_{site_type}_{strand}".replace("+", "plus").replace("-", "minus")
+        
         output_df[f"{safe_track_name}_ref_value"] = values_ref[:, track_index]
         output_df[f"{safe_track_name}_alt_value"] = values_alt[:, track_index]
         output_df[f"{safe_track_name}_delta_alt_ref"] = (
@@ -875,6 +902,155 @@ def export_local_prediction_views(output_dir, local_window):
             local_paths.append(output_path)
 
     return local_paths
+
+def export_track_summary(output_dir):
+    """
+    Export summary statistics per output type and track.
+
+    This table helps identify which tracks are most affected without opening
+    very large prediction tables.
+    """
+
+    prediction_files = [
+        output_dir / "predict_variant_atac.tsv",
+        output_dir / "predict_variant_cage.tsv",
+        output_dir / "predict_variant_chip_histone.tsv",
+        output_dir / "predict_variant_chip_tf.tsv",
+        output_dir / "predict_variant_dnase.tsv",
+        output_dir / "predict_variant_procap.tsv",
+        output_dir / "predict_variant_rna_seq.tsv",
+        output_dir / "predict_variant_splice_site_usage.tsv",
+        output_dir / "predict_variant_splice_junctions.tsv",
+    ]
+
+    prediction_files = [
+        path for path in prediction_files
+        if path.exists()
+    ]
+
+    summaries = []
+
+    for path in prediction_files:
+        df = pd.read_csv(path, sep="\t")
+
+        required_columns = {
+            "output_name",
+            "track_index",
+            "delta_alt_ref",
+        }
+
+        if not required_columns.issubset(set(df.columns)):
+            continue
+
+        df["abs_delta_alt_ref"] = df["delta_alt_ref"].abs()
+
+        idx = (
+            df
+            .groupby(["output_name", "track_index"])["abs_delta_alt_ref"]
+            .idxmax()
+        )
+
+        max_rows = df.loc[idx].copy()
+
+        summary_stats = (
+            df
+            .groupby(["output_name", "track_index"])
+            .agg(
+                max_abs_delta=("abs_delta_alt_ref", "max"),
+                max_positive_delta=("delta_alt_ref", "max"),
+                max_negative_delta=("delta_alt_ref", "min"),
+                mean_abs_delta=("abs_delta_alt_ref", "mean"),
+                n_rows=("delta_alt_ref", "count"),
+                n_abs_delta_ge_0_1=("abs_delta_alt_ref", lambda x: (x >= 0.1).sum()),
+                n_abs_delta_ge_0_5=("abs_delta_alt_ref", lambda x: (x >= 0.5).sum()),
+                n_abs_delta_ge_0_9=("abs_delta_alt_ref", lambda x: (x >= 0.9).sum()),
+            )
+            .reset_index()
+        )
+
+        excluded_columns = {
+            "output_name",
+            "position_index",
+            "genomic_position_0based",
+            "genomic_position_1based",
+            "chromosome",
+            "track_index",
+            "ref_value",
+            "alt_value",
+            "delta_alt_ref",
+            "abs_delta_alt_ref",
+            "junction_start_0based",
+            "junction_end_0based",
+            "junction_start_1based",
+            "junction_end_1based",
+            "junction_length",
+            "junction_chromosome",
+            "junction_strand",
+            "junction_name",
+        }
+
+        metadata_columns = [
+            col for col in df.columns
+            if col not in excluded_columns
+        ]
+
+        max_rows_metadata = max_rows[
+            ["output_name", "track_index"]
+            + [
+                col for col in [
+                    "genomic_position_1based",
+                    "junction_start_1based",
+                    "junction_end_1based",
+                    "junction_length",
+                ]
+                if col in max_rows.columns
+            ]
+            + metadata_columns
+        ].copy()
+
+        max_rows_metadata = max_rows_metadata.rename(
+            columns={
+                "genomic_position_1based": "position_of_max_abs_delta_1based",
+                "junction_start_1based": "junction_start_of_max_abs_delta_1based",
+                "junction_end_1based": "junction_end_of_max_abs_delta_1based",
+                "junction_length": "junction_length_of_max_abs_delta",
+            }
+        )
+
+        summary = summary_stats.merge(
+            max_rows_metadata,
+            on=["output_name", "track_index"],
+            how="left"
+        )
+
+        summary = summary.loc[:, ~summary.columns.duplicated()].copy()
+
+        summaries.append(summary)
+
+    if not summaries:
+        return None
+
+    summary_df = pd.concat(
+        summaries,
+        ignore_index=True,
+        sort=False
+    )
+
+    summary_df = summary_df.sort_values(
+        by="max_abs_delta",
+        ascending=False
+    )
+
+    output_path = output_dir / "predict_variant_track_summary.tsv"
+
+    summary_df.to_csv(
+        output_path,
+        sep="\t",
+        index=False
+    )
+
+    return output_path
+
 # -----------------------------------------------
 # 7) Run log generation
 # -----------------------------------------------
@@ -887,6 +1063,7 @@ def write_runlog(
     interval,
     local_window,
     local_prediction_paths,
+    track_summary_path,
     requested_outputs,
     ontology_terms,
     score_table_path,
@@ -989,6 +1166,7 @@ def write_runlog(
         runlog.write("-" * 20 + "\n")
         runlog.write(f"{score_table_path.name}\n")
         runlog.write(f"{merged_splicing_path.name}\n")
+        
         for path in local_prediction_paths:
             runlog.write(f"{path.name}\n")
 
@@ -1008,6 +1186,13 @@ def write_runlog(
 
         if top_negative_path is not None:
             runlog.write(f"{top_negative_path.name}\n")
+
+        if track_summary_path is not None:
+            runlog.write(f"{track_summary_path.name}\n")
+        else:
+            runlog.write(
+        "predict_variant_track_summary.tsv: not generated\n"
+        )
         
 # -----------------------------------------------
 # 8) Main workflow
@@ -1043,6 +1228,7 @@ def main():
     contact_maps_path = export_contact_maps(prediction, output_dir)
     top_positive_path, top_negative_path = export_global_delta_tops(output_dir, args.top_n)
     local_prediction_paths = export_local_prediction_views(output_dir, local_window)
+    track_summary_path = export_track_summary(output_dir)
     
     write_runlog(
     args,
@@ -1052,6 +1238,7 @@ def main():
     interval,
     local_window,
     local_prediction_paths,
+    track_summary_path,
     requested_outputs,
     ontology_terms,
     score_table_path,
@@ -1072,6 +1259,7 @@ def main():
     print(f"Contact maps prediction table saved to: {contact_maps_path}")
     print(f"Top positive delta table saved to: {top_positive_path}")
     print(f"Top negative delta table saved to: {top_negative_path}")
+    print(f"Track summary table saved to: {track_summary_path}")
     print("Runlog created successfully.")
         
 

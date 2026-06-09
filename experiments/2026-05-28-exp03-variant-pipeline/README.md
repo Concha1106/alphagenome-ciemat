@@ -63,7 +63,7 @@ Actualmente el script permite:
 - generar tablas top positivas y negativas por `output_type`;
 - registrar parámetros de ejecución en `runlog.txt`.
 
-### Actualización: optimización de exportación predict_variant
+### Optimización de exportación predict_variant
 
 Se identificó un cuello de botella de memoria durante la exportación local de predicciones generadas por `predict_variant()`, especialmente al trabajar con ontologías con múltiples tracks y ventanas grandes.
 
@@ -71,4 +71,9 @@ Para reducir el uso de RAM, la exportación de salidas tipo TrackData se modific
 
 Además, se mejoró el manejo de ejecuciones parciales mediante `--output-types`, permitiendo solicitar únicamente modalidades concretas, como `CAGE` o `SPLICE_SITES`, sin que el exportador falle al encontrar outputs no solicitados.
 
+### Mejoras añadidas
 
+- calcular y exportar `score_variant_merged_splicing.tsv`, con una métrica integrada de splicing basada en `SPLICE_SITES`, `SPLICE_SITE_USAGE` y `SPLICE_JUNCTIONS`;
+- exportar `splice_sites` en formato wide para facilitar su visualización en Excel;
+- generar vistas locales alrededor de la variante para facilitar la interpretación regional;
+- generar `predict_variant_track_summary.tsv`, una tabla resumen por output type y track con máximos, medias y número de posiciones con delta relevante.
