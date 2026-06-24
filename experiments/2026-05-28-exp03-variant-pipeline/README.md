@@ -34,7 +34,7 @@ El pipeline se desarrollará en diferentes fases que modularán lo siguiente:
 - position  
 - reference (REF)
 - alternate 
-Argumentos opcionales previstos
+- Argumentos opcionales previstos
 - interval size
 
 ### Outputs previstos
@@ -47,21 +47,25 @@ El pipeline generará:
 
 ### Estado
 
-Pipeline funcional en versión inicial.
+Pipeline funcional.
 
 Actualmente el script permite:
 
-- recibir una variante mediante argumentos de línea de comandos;
-- construir el objeto `Variant` de AlphaGenome;
-- construir el intervalo de entrada usando `variant.reference_interval.resize()`;
-- ejecutar `score_variant()`;
-- exportar la tabla completa `score_variant_all.tsv`;
-- ejecutar `predict_variant()` para una ontología concreta indicada mediante `--ontology-curie`;
-- exportar predicciones REF, ALT y delta para salidas tipo TrackData;
-- exportar predicciones REF, ALT y delta para splice junctions;
-- gestionar contact maps, exportándolos solo cuando existan tracks disponibles;
-- generar tablas top positivas y negativas por `output_type`;
-- registrar parámetros de ejecución en `runlog.txt`.
+- recibir una variante mediante argumentos de línea de comandos
+- construir el objeto `Variant` de AlphaGenome
+- construir el intervalo de entrada usando `variant.reference_interval.resize()`
+- ejecutar `score_variant()`
+- exportar la tabla completa `score_variant_all.tsv`
+- ejecutar `predict_variant()` para una ontología concreta indicada mediante `--ontology-curie`
+- exportar predicciones REF, ALT y delta para salidas tipo TrackData
+- exportar predicciones REF, ALT y delta para splice junctions
+- gestionar contact maps, exportándolos solo cuando existan tracks disponibles
+- generar tablas top positivas y negativas por `output_type`
+- registrar parámetros de ejecución en `runlog.txt`
+- guardar el objeto completo predict_variant() como prediction.pkl, permitiendo reutilizar las predicciones sin repetir llamadas a la API
+- registrar prediction.pkl en runlog.txt como archivo generado
+- desarrollar un script independiente de visualización (visualize-prediction.py) basado en el objeto serializado
+- generar una primera figura local de RNA-seq con: señal REF vs ALT, delta ALT-REF, anotación MANE Select de SEC23B, posición y coordenada del KI y región de visualización parametrizable
 
 ### Optimización de exportación predict_variant
 
@@ -77,3 +81,13 @@ Además, se mejoró el manejo de ejecuciones parciales mediante `--output-types`
 - exportar `splice_sites` en formato wide para facilitar su visualización en Excel;
 - generar vistas locales alrededor de la variante para facilitar la interpretación regional;
 - generar `predict_variant_track_summary.tsv`, una tabla resumen por output type y track con máximos, medias y número de posiciones con delta relevante.
+
+## Visualización de predicciones
+
+Se añadió un módulo independiente de visualización para separar el análisis computacional de la generación de figuras.
+
+El pipeline principal (run-variant-pipeline.py) ejecuta score_variant() y predict_variant(), exporta tablas estructuradas y guarda el objeto completo de predicción como prediction.pkl.
+
+El script de visualización (visualize-prediction.py) carga este objeto y permite generar figuras locales sin repetir llamadas a AlphaGenome. Esta estrategia mejora la reproducibilidad, reduce el uso de la API y permite iterar sobre las figuras de resultados de forma independiente.
+
+La primera visualización implementada corresponde a RNA-seq, representando REF, ALT y delta ALT-REF en una región local del gen SEC23B, junto con la anotación MANE Select y la posición del KI.

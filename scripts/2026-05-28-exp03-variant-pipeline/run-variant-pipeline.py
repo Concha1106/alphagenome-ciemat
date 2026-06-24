@@ -22,6 +22,7 @@ import pandas as pd
 from alphagenome.data import genome
 from alphagenome.models import dna_client, variant_scorers
 from alphagenome_key import get_dna_model
+import pickle
 
 
 # -----------------------------------------------
@@ -478,6 +479,7 @@ def run_predict_variant(dna_model, interval, variant, requested_outputs, ontolog
     )
 
     return prediction
+
 
 def export_one_trackdata_output(prediction, output_name, output_dir):
     """
@@ -1068,6 +1070,7 @@ def write_runlog(
     ontology_terms,
     score_table_path,
     merged_splicing_path,
+    prediction_object_path,
     trackdata_paths,
     splice_junctions_path,
     contact_maps_path,
@@ -1166,6 +1169,7 @@ def write_runlog(
         runlog.write("-" * 20 + "\n")
         runlog.write(f"{score_table_path.name}\n")
         runlog.write(f"{merged_splicing_path.name}\n")
+        runlog.write(f"{prediction_object_path.name}\n")
         
         for path in local_prediction_paths:
             runlog.write(f"{path.name}\n")
@@ -1220,6 +1224,10 @@ def main():
     
     ontology_terms = get_ontology_terms(args.ontology_curie)
     prediction = run_predict_variant(dna_model, interval, variant, requested_outputs, ontology_terms)
+    prediction_object_path = output_dir / "prediction.pkl"
+    with open(prediction_object_path, "wb") as f:
+        pickle.dump(prediction, f)
+
     trackdata_paths = export_all_trackdata_outputs(prediction, output_dir)
     splice_sites_path = export_splice_sites_wide_from_prediction(prediction, output_dir)
     if splice_sites_path is not None:
@@ -1243,6 +1251,7 @@ def main():
     ontology_terms,
     score_table_path,
     merged_splicing_path,
+    prediction_object_path,
     trackdata_paths,
     splice_junctions_path,
     contact_maps_path,

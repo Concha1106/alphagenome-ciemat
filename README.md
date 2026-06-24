@@ -185,6 +185,24 @@ alphagenome-ciemat/
 - Generación de vistas locales alrededor de la variante.
 - Implementación de `predict_variant_track_summary.tsv` para resumir el impacto por track y orientar la interpretación de outputs con múltiples señales.
 
+### Días 46-53
+- Establecimiento de la estrategia de análisis e interpretación del KI en SEC23B para evaluar su impacto funcional.
+- Exploración y elección de ontologías relevantes para este caso de estudio.
+- Ejecución del pipeline del exp03 end diferentes ontologías.
+- Interpretación por separado y conjunta de los distintos output types obtenidos en cada ontología para la evaluación del cambio en la expresión y del patrón de splicing debido al  KI simulado en AlphaGenome.
+
+### Días 54, 55 y 56
+
+- Serialización del objeto completo devuelto por predict_variant() mediante pickle, generando prediction.pkl junto a los TSV.
+- Separación conceptual entre:
+  --> pipeline de análisis/exportación (run-variant-pipeline.py)
+  --> script de visualización (visualize-prediction.py)
+- Desarrollo inicial de un script de visualización basado en objetos de AlphaGenome previamente guardados.
+- Implementación de visualización local de RNA-seq REF vs ALT y delta ALT-REF.
+- Incorporación de anotación MANE Select de SEC23B para contextualizar los cambios predichos en exones e intrones.
+- Parametrización de la región visualizada mediante --region-start, --region-end y/o ventana local inferida desde runlog.txt.
+- Inclusión de marca visual del punto de inserción KI y coordenada genómica real.
+
 ## Experimentos
 
 ### exp01 — Installation Test
