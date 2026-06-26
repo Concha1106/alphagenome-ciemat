@@ -90,4 +90,4 @@ El pipeline principal (run-variant-pipeline.py) ejecuta score_variant() y predic
 
 El script de visualización (visualize-prediction.py) carga este objeto y permite generar figuras locales sin repetir llamadas a AlphaGenome. Esta estrategia mejora la reproducibilidad, reduce el uso de la API y permite iterar sobre las figuras de resultados de forma independiente.
 
-La primera visualización implementada corresponde a RNA-seq, representando REF, ALT y delta ALT-REF en una región local del gen SEC23B, junto con la anotación MANE Select y la posición del KI.
+El script de visualización permite actualmente generar figuras locales para RNA-seq, splice_sites, splice_site_usage y splice_junctions. Las figuras integran señal REF vs ALT, delta ALT-REF cuando procede, anotación MANE Select de SEC23B, posición del KI y región de visualización parametrizable. Además, el script genera un visualization_runlog.txt con los argumentos usados, región visualizada, umbrales de selección de junctions y figuras generadas.

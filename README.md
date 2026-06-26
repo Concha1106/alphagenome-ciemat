@@ -203,6 +203,14 @@ alphagenome-ciemat/
 - Parametrización de la región visualizada mediante --region-start, --region-end y/o ventana local inferida desde runlog.txt.
 - Inclusión de marca visual del punto de inserción KI y coordenada genómica real.
 
+### Días 57 y 58
+
+- Ampliación del script visualize-prediction.py para generar visualizaciones locales de splice_sites, splice_site_usage y splice_junctions a partir de prediction.pkl.
+- Implementación de selección parametrizable de splice junctions según delta ALT-REF positivo y negativo.
+- Desarrollo de una representación tipo arco para splice_junctions, codificando coordenadas genómicas, longitud de junction, magnitud del delta y dirección del cambio.
+- Incorporación de visualization_runlog.txt para registrar parámetros de visualización, región usada, umbrales de junctions seleccionadas y figuras generadas.
+- Queda pendiente unificar estilo visual entre figuras y refactorizar el script.
+
 ## Experimentos
 
 ### exp01 — Installation Test
@@ -255,6 +263,8 @@ Estado actual:
 - exportación de tablas completas REF/ALT/delta;
 - exportación de tablas top positivas y negativas por output type;
 - generación automática de runlogs.
+- generación de figuras locales para RNA-seq, splice_sites, splice_site_usage y splice_junctions;
+- generación de visualization_runlog.txt para trazabilidad de la visualización;
 
 Desarrollos futuros:
 - mejorar formato de exportación para uso en Excel, incluyendo posible formato wide;
