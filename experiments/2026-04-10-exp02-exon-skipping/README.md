@@ -234,32 +234,35 @@ indica una conexión directa entre los exones 18 y 16, omitiendo el exón interm
 
 ## 3. SCRIPTS PARA LA VISUALIZACIÓN DE LA FIGURA 3b.
 
-En esta fase del experimento se han desarrollado varios scripts para la visualización de los efectos de la variante sobre distintos parámetros de splicing:
+Con el objetivo de validar de forma visual las predicciones obtenidas mediante `predict_variant()`, se desarrollaron varios scripts específicos para representar de manera independiente los principales outputs relacionados con splicing y expresión.
 
-- "plot-fig3b-junctions.py"  
-  Representación de las splice junctions predichas por AlphaGenome.
+Todos los gráficos utilizan la misma región genómica local, los mismos colores para REF/ALT y un estilo homogéneo inspirado en la Figura 3b del artículo original de AlphaGenome.## 3. VISUALIZACIÓN DE LA FIGURA 3b
 
-- "plot-fig3b-rna-seq.py"  
-  Visualización de la señal de RNA-seq asociada a la variante.
+Con el objetivo de validar de forma visual las predicciones obtenidas mediante `predict_variant()`, se desarrollaron varios scripts específicos para representar de manera independiente los principales outputs relacionados con splicing y expresión.
 
-- "plot-fig3b-splice-sites-and-usage.py"  
-  Representación de los splice sites y su uso (splice site usage).
+Todos los gráficos utilizan la misma región genómica local, los mismos colores para REF/ALT y un estilo homogéneo inspirado en la Figura 3b del artículo original de AlphaGenome.
 
-- "plot-fig3b-complete.py"
-  Integración de todos los parámetros anteriores en una única figura, aproximando la Figura 3b del artículo.
+Los scripts finalmente fueron:
 
+- plot-fig3b-junctions.py
+  Representación de las splice junctions mediante arcos, destacando las junctions compatibles con exon skipping.
 
-### ACTUALIZACIONES
+- plot-fig3b-rna-seq.py
+  Comparación directa REF vs ALT de la señal de RNA-seq predicha.
 
-- Se ha modificado el script `plot-fig3b-junctions.py` para mejorar la representación gráfica de las junctions y se ha añadido una breve descripción.
-- Se han añadido nuevos scripts para representar de forma separada los distintos parámetros del modelo.
-- Se ha comenzado la integración de todos los outputs en una visualización conjunta.
-
+- plot-fig3b-splice-sites-and-usage.py
+  Representación conjunta de splice sites y splice site usage.
 
 ## Archivos asociados
 
 - runlog.txt: registro reproducible de ejecución  
 - manifest-data.tsv: inventario general de archivos del proyecto  
+
+### Resultado
+
+Se obtuvieron representaciones gráficas independientes para splice junctions, RNA-seq, splice sites y splice site usage.
+
+Estas figuras permiten comparar directamente las predicciones REF y ALT generadas por AlphaGenome y reproducen de forma aproximada el estilo de la Figura 3b del artículo original, facilitando la interpretación del evento de exon skipping.
 
 ## Estado
 
@@ -276,6 +279,5 @@ Se ha completado:
 - Desarrollo del script predict_variant() para comparación REF vs AL y se ha añadido una breve descripción.
 - Generación de tablas listas para visualización final
 - Generación de visualización final tipo Figura 3b
+- Interpretación comparativa final empleando los resultados obtenidos apoyándonos en los gráficos de visualización
 
-Pendiente:
-- Interpretación comparativa final de junctions perdidas/ganadas entre REF y ALT

@@ -14,15 +14,22 @@ import matplotlib.pyplot as plt
 from matplotlib.patches import Arc
 from matplotlib.lines import Line2D
 
+REF_COLOR = "#1f77b4"
+ALT_COLOR = "#7a0019"
+VARIANT_COLOR = "#D4A017"
+
+TITLE = "DLG1 | Artery tibial\nPredicted splice junctions"
+
+VARIANT_POS = 197081044
 
 # 1) Paths
 
-project_root = Path("~/Desktop/test-zip-recovery/alphagenome-ciemat").expanduser()
+project_root = Path("~/proyectos_UAX/alphagenome-ciemat").expanduser()
 results_dir = project_root / "results/2026-04-10-exp02-exon-skipping"
 
 junctions_file = results_dir / "dlg1_splice_junctions_ref_vs_alt.tsv"
 
-out_png = results_dir / "dlg1_fig3b_arcs_only.png"
+out_png = results_dir / "dlg1_fig3b_arcs_improved.png"
 
 
 # 2) Load junction table
@@ -50,9 +57,8 @@ plot_junc = junctions_of_interest.merge(
 
 # 5) Draw only arcs
 
-fig, ax = plt.subplots(figsize=(10, 3))
+fig, ax = plt.subplots(figsize=(10, 3.8))
 
-ax.axvline(197081044, color="gold", linewidth=1.5, linestyle="--")
 
 panel_y = {
     "REF": 1.00,
@@ -65,8 +71,8 @@ for _, row in plot_junc.iterrows():
     y = panel_y[row["panel"]]
 
     height = 0.4 if row["panel"] == "REF" else 0.55
-    color = "cornflowerblue" if row["panel"] == "REF" else "firebrick"
-    lw = 1+ abs(row["delta_alt_ref"]) * 4 #escalado de datos??
+    color = REF_COLOR if row["panel"] == "REF" else ALT_COLOR
+    lw = 1.2 + abs(row["delta_alt_ref"])*3
 
     
     arc = Arc(
@@ -87,24 +93,63 @@ for _, row in plot_junc.iterrows():
     f"{abs(row['delta_alt_ref']):.2f}",
     ha="center",
     va="bottom",
-    fontsize=10,
+    fontsize=9,
+    fontweight="bold",
     )
 
+ax.axvline(
+    VARIANT_POS,
+    color=VARIANT_COLOR,
+    linewidth=1.2,
+    linestyle="--",
+)
+
+ax.text(
+    VARIANT_POS + 140,
+    1.92,
+    "4 bp deletion\n197081044",
+    fontsize=8,
+    color=VARIANT_COLOR,
+    ha="left",
+    va="top",
+    fontweight="bold",
+)
+
+
 # 6) Basic formatting
+
+ax.set_title(
+    TITLE,
+    fontsize=11,
+    fontweight="bold",
+)
 
 ax.set_xlim(197076044, 197086544)
 ax.ticklabel_format(style="plain", axis="x")
 ax.get_xaxis().get_major_formatter().set_useOffset(False)
-ax.set_ylim(0.2, 2.0)
+ax.set_xlabel("Genomic position (GRCh38)")
+ax.set_ylim(0.2, 2.25)
 ax.set_yticks([])
 
 leyenda = [
-    Line2D([0], [0], color="cornflowerblue", linewidth=2.5, label="REF"),
-    Line2D([0], [0], color="firebrick",      linewidth=2.5, label="ALT"),
+    Line2D([0], [0], color=REF_COLOR, linewidth=2.5, label="REF"),
+    Line2D([0], [0], color=ALT_COLOR, linewidth=2.5, label="ALT"),
 ]
 
-ax.legend(handles=leyenda, loc="upper right", frameon=False)
-plt.tight_layout()
-plt.savefig(out_png, dpi=300)
+ax.legend(
+    handles=leyenda,
+    frameon=False,
+    loc="center left",
+    bbox_to_anchor=(1.01,0.90),
+)
+
+ax.spines["top"].set_visible(False)
+ax.spines["right"].set_visible(False)
+
+plt.savefig(
+    out_png,
+    dpi=300,
+    bbox_inches="tight",
+)
 plt.show()
 

@@ -132,7 +132,7 @@ alphagenome-ciemat/
 - Desarrollo de tres scripts individuales que permiten graficar los parámetros splice_junctions, rna_seq y splice_sites/splice_site_usage por separado. 
 
 ### Día 20
-- Desarrollo de un script para graficar conjuntamente los parámetros de splice_junctions, rna_seq, splice_sites y splice_site_usage por separado.
+- Desarrollo de scripts específicos para representar los principales outputs de `predict_variant()` (RNA-seq, splice junctions, splice sites y splice site usage) e integración preliminar en una figura conjunta inspirada en la Figura 3b del artículo de AlphaGenome.
 
 ### Dias 21-35
 
@@ -234,7 +234,7 @@ Incluye:
 - runlog reproducible
 - uso de score_variant para análisis de splicing en script exp02-score_exon_skipping.py
 - uso de predict_variant para completar el análisis de splicing en script exp02-ref_vs_alt_prediction.py
-- scripts para replicar la figura 3b.
+- scripts independientes para reproducir de forma aproximada la Figura 3b del artículo mediante representaciones independientes de RNA-seq, splice junctions, splice sites y splice site usage.
 
 ### exp03 - General Variant Evaluation Pipeline
 
