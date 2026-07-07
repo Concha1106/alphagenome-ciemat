@@ -266,13 +266,16 @@ Estado actual:
 - generación de figuras locales para RNA-seq, splice_sites, splice_site_usage y splice_junctions;
 - generación de visualization_runlog.txt para trazabilidad de la visualización;
 
-Desarrollos futuros:
-- mejorar formato de exportación para uso en Excel, incluyendo posible formato wide;
-- añadir resúmenes específicos por modalidad biológica;
-- optimizar exportación de archivos grandes;
-- permitir modos alternativos de ejecución de predict_variant();
-- añadir priorización automática basada en score_variant();
-- añadir visualizaciones básicas.
+Últimas mejoras
+
+- separación completa entre pipeline de análisis y pipeline de visualización;
+- visualización reutilizable a partir de prediction.pkl;
+- carga automática de anotación génica desde GTF;
+- selección automática del transcript MANE Select (o transcript indicado por el usuario);
+- compatibilidad con cualquier gen anotado en GRCh38;
+- validación previa de argumentos y mensajes de error orientados al usuario;
+- generación automática de visualization_runlog.txt;
+- exportación automática de la tabla de splice junctions representadas.
 
 ## Entorno
 

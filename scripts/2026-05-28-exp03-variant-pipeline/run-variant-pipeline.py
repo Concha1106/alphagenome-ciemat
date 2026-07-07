@@ -23,7 +23,7 @@ from alphagenome.data import genome
 from alphagenome.models import dna_client, variant_scorers
 from alphagenome_key import get_dna_model
 import pickle
-
+from common import classify_prediction_output
 
 # -----------------------------------------------
 # 2) Argument parsing
@@ -49,7 +49,16 @@ def parse_arguments():
     parser.add_argument("--pos", required=True, type=int, help="Genomic position, 1-based")
     parser.add_argument("--ref", required=True, help="Reference allele")
     parser.add_argument("--alt", required=True, help="Alternative allele")
-    parser.add_argument("--ontology-curie", required=True, help="Ontology CURIE used for predict_variant, e.g. UBERON:0007610")
+    parser.add_argument(
+    "--ontology-curie",
+    default=None,
+    help=(
+        "Optional ontology CURIE used to filter predict_variant results, "
+        "e.g. UBERON:0007610 or CL:0001059. "
+        "If omitted, AlphaGenome returns all available ontology-specific "
+        "results for the requested outputs."
+    )
+)
     
     # General execution options.
     parser.add_argument(
@@ -124,6 +133,19 @@ def normalize_allele(allele):
 
     return allele
 
+def validate_allele_not_empty(allele, allele_name):
+    """
+    Validate that REF or ALT allele is not empty after normalization.
+    """
+
+    if not allele:
+        raise ValueError(
+            f"--{allele_name} cannot be empty. Provide a valid DNA allele, "
+            "for example A, C, G, T, or a longer sequence."
+        )
+
+    return allele
+
 def validate_position(pos):
     """
     Validate genomic position.
@@ -137,6 +159,54 @@ def validate_position(pos):
 
     return pos
 
+def validate_top_n(top_n):
+    """
+    Validate number of top results to export.
+
+    top_n must be a positive integer because it defines how many results
+    will be included in top delta summary tables.
+    """
+
+    if top_n < 1:
+        raise ValueError(
+            "--top-n must be a positive integer greater than 0."
+        )
+
+    return top_n
+
+def validate_ontology_curie(ontology_curie):
+    """
+    Validate ontology CURIE argument.
+
+    If ontology_curie is None, AlphaGenome will not filter predictions by
+    ontology term and will return all available ontology-specific results
+    for the requested outputs.
+
+    If ontology_curie is provided, it must look like a CURIE, for example
+    UBERON:0007610 or CL:0001059.
+    """
+
+    if ontology_curie is None:
+        return None
+
+    ontology_curie = ontology_curie.strip()
+
+    if not ontology_curie:
+        raise ValueError(
+            "--ontology-curie cannot be empty. Use a CURIE such as "
+            "UBERON:0007610, or omit the argument to request all available "
+            "ontology terms."
+        )
+
+    if ":" not in ontology_curie:
+        raise ValueError(
+            "--ontology-curie must look like a CURIE, for example "
+            "UBERON:0007610 or CL:0001059. To request all available "
+            "ontology terms, omit --ontology-curie."
+        )
+
+    return ontology_curie
+
 def build_variant(args):
     """
     Build an AlphaGenome Variant object from command-line arguments.
@@ -147,8 +217,15 @@ def build_variant(args):
 
     chrom = normalize_chromosome(args.chrom)
     pos = validate_position(args.pos)
-    ref = normalize_allele(args.ref)
-    alt = normalize_allele(args.alt)
+    ref = validate_allele_not_empty(
+        normalize_allele(args.ref),
+        "ref"
+    )
+
+    alt = validate_allele_not_empty(
+        normalize_allele(args.alt),
+        "alt"
+    )
 
     variant = genome.Variant(
         chromosome=chrom,
@@ -281,9 +358,21 @@ def get_requested_outputs(output_types):
     if output_types is None:
         return list(dna_client.OutputType)
 
+    valid_output_names = [output.name for output in dna_client.OutputType]
+
     requested_outputs = []
 
     for output_type in output_types:
+        output_type = output_type.strip().upper()
+
+        if output_type not in valid_output_names:
+            valid_options = ", ".join(valid_output_names)
+
+            raise ValueError(
+                f"Invalid AlphaGenome output type: '{output_type}'.\n"
+                f"Valid output types are:\n{valid_options}"
+            )
+
         requested_outputs.append(dna_client.OutputType[output_type])
 
     return requested_outputs
@@ -292,9 +381,13 @@ def get_ontology_terms(ontology_curie):
     """
     Define ontology terms for predict_variant.
 
-    In the current MVP, one ontology CURIE is required to avoid requesting
-    predictions for all available ontologies.
+    If ontology_curie is None, no ontology filter is applied and AlphaGenome
+    returns all available ontology-specific predictions for the requested
+    outputs.
     """
+
+    if ontology_curie is None:
+        return None
 
     return [ontology_curie]
 
@@ -564,11 +657,11 @@ def export_all_trackdata_outputs(prediction, output_dir):
         ref_data = getattr(prediction.reference, output_name)
        
         if ref_data is None:
-            print(f"Skipping {output_name}: output was not requested.")
+            print(f"Skipping '{output_name}': output was not requested by AlphaGenome or is not available for the selected ontology/output configuration.")
             continue
     
         if ref_data.values.shape[1] == 0:
-            print(f"Skipping {output_name}: no tracks available.")
+            print(f"Skipping '{output_name}': no tracks available in the AlphaGenome prediction output.")
             continue
 
         output_path = export_one_trackdata_output(
@@ -594,11 +687,11 @@ def export_splice_sites_wide_from_prediction(prediction, output_dir):
     alt_data = prediction.alternate.splice_sites
 
     if ref_data is None or alt_data is None:
-        print("Skipping splice_sites: output was not requested.")
+        print("Skipping 'splice_sites': output was not requested by AlphaGenome or is not available for the selected ontology/output configuration.")
         return None
 
     if ref_data.values.shape[1] == 0:
-        print("Skipping splice_sites: no tracks available.")
+        print("Skipping 'splice_sites': no tracks available in the AlphaGenome prediction output.")
         return None
 
     values_ref = ref_data.values
@@ -651,7 +744,7 @@ def export_splice_junctions(prediction, output_dir):
     alt_data = prediction.alternate.splice_junctions
     
     if ref_data is None or alt_data is None:
-        print("Skipping splice_junctions: output was not requested.")
+        print("Skipping 'splice_junctions': output was not requested by AlphaGenome or is not available for the selected ontology/output configuration.")
         return None
 
     values_ref = ref_data.values
@@ -663,7 +756,7 @@ def export_splice_junctions(prediction, output_dir):
     
 
     if values_ref.shape[1] == 0:
-        print("Skipping splice_junctions: no tracks available.")
+        print("Skipping 'splice_junctions': no tracks available in the AlphaGenome prediction output.")
         return None
 
     rows = []
@@ -725,7 +818,7 @@ def export_contact_maps(prediction, output_dir):
     alt_data = prediction.alternate.contact_maps
 
     if ref_data is None or alt_data is None:
-        print("Skipping contact_maps: output was not requested.")
+        print("Skipping 'contact_maps': output was not requested by AlphaGenome or is not available for the selected ontology/output configuration.")
         return None
 
     values_ref = ref_data.values
@@ -734,7 +827,7 @@ def export_contact_maps(prediction, output_dir):
     metadata = ref_data.metadata.copy()
 
     if values_ref.shape[2] == 0:
-        print("Skipping contact_maps: no tracks available.")
+        print("Skipping 'contact_maps': no tracks available in the AlphaGenome prediction output.")
         return None
 
     rows = []
@@ -1053,6 +1146,106 @@ def export_track_summary(output_dir):
 
     return output_path
 
+def summarize_prediction_outputs(prediction):
+    """
+    Summarize the real AlphaGenome data structures returned by predict_variant().
+    """
+
+    output_names = [
+        "atac",
+        "cage",
+        "chip_histone",
+        "chip_tf",
+        "contact_maps",
+        "dnase",
+        "procap",
+        "rna_seq",
+        "splice_sites",
+        "splice_site_usage",
+        "splice_junctions",
+    ]
+
+    rows = []
+
+    for output_name in output_names:
+        ref_data = getattr(prediction.reference, output_name, None)
+        alt_data = getattr(prediction.alternate, output_name, None)
+
+        data_class = classify_prediction_output(ref_data)
+
+        row = {
+            "output_name": output_name,
+            "data_class": data_class,
+            "reference_available": ref_data is not None,
+            "alternate_available": alt_data is not None,
+            "values_shape": None,
+            "n_tracks": None,
+            "n_junctions": None,
+        }
+
+        if hasattr(ref_data, "values"):
+            row["values_shape"] = "x".join(map(str, ref_data.values.shape))
+
+            if ref_data.values.ndim == 2:
+                row["n_tracks"] = ref_data.values.shape[1]
+            elif ref_data.values.ndim == 3:
+                row["n_tracks"] = ref_data.values.shape[2]
+
+        if hasattr(ref_data, "junctions"):
+            row["n_junctions"] = len(ref_data.junctions)
+
+        rows.append(row)
+
+    return pd.DataFrame(rows)
+
+def build_export_status_table(prediction_output_summary, exported_prediction_paths):
+    """
+    Build a table describing which primary predict_variant outputs were exported.
+
+    Only primary predict_variant output tables should be passed here.
+    Derived tables such as local views, top delta tables or track summaries
+    are intentionally excluded.
+    """
+
+    exported_output_names = {
+        path.stem.replace("predict_variant_", "")
+        for path in exported_prediction_paths
+        if path is not None
+    }
+
+    status_df = prediction_output_summary.copy()
+
+    status_df["exported"] = status_df["output_name"].isin(exported_output_names)
+
+    status_df["export_reason"] = "exported"
+
+    status_df.loc[
+        ~status_df["reference_available"],
+        "export_reason"
+    ] = "not_available_from_predict_variant"
+
+    status_df.loc[
+        status_df["reference_available"] & ~status_df["exported"],
+        "export_reason"
+    ] = "available_but_not_exported_by_current_pipeline"
+
+    return status_df
+
+def export_status_table_to_tsv(export_status_table, output_dir):
+    """
+    Export predict_variant export status as a standalone TSV file.
+    """
+
+    output_path = output_dir / "predict_variant_export_status.tsv"
+
+    export_status_table.to_csv(
+        output_path,
+        sep="\t",
+        index=False
+    )
+
+    return output_path
+
 # -----------------------------------------------
 # 7) Run log generation
 # -----------------------------------------------
@@ -1071,7 +1264,11 @@ def write_runlog(
     score_table_path,
     merged_splicing_path,
     prediction_object_path,
+    prediction_output_summary,
+    export_status_table,
+    export_status_path,
     trackdata_paths,
+    splice_sites_path,
     splice_junctions_path,
     contact_maps_path,
     top_positive_path,
@@ -1170,12 +1367,32 @@ def write_runlog(
         runlog.write(f"{score_table_path.name}\n")
         runlog.write(f"{merged_splicing_path.name}\n")
         runlog.write(f"{prediction_object_path.name}\n")
+        runlog.write(f"{export_status_path.name}\n")
         
-        for path in local_prediction_paths:
-            runlog.write(f"{path.name}\n")
+        runlog.write("\npredict_variant output summary\n")
+        runlog.write("-" * 20 + "\n")
+
+        if prediction_output_summary.empty:
+            runlog.write("No predict_variant outputs found.\n")
+        else:
+            runlog.write(prediction_output_summary.to_string(index=False))
+            runlog.write("\n")
+        
+        runlog.write("\npredict_variant export status\n")
+        runlog.write("-" * 20 + "\n")
+        runlog.write(export_status_table.to_string(index=False))
+        runlog.write("\n")
+        
+        runlog.write("\nPrimary predict_variant tables\n")
+        runlog.write("-" * 20 + "\n")
 
         for path in trackdata_paths:
             runlog.write(f"{path.name}\n")
+
+        if splice_sites_path is not None:
+            runlog.write(f"{splice_sites_path.name}\n")
+        else:
+            runlog.write("predict_variant_splice_sites.tsv: not generated\n")
 
         if splice_junctions_path is not None:
             runlog.write(f"{splice_junctions_path.name}\n")
@@ -1184,6 +1401,12 @@ def write_runlog(
             runlog.write(f"{contact_maps_path.name}\n")
         else:
             runlog.write("predict_variant_contact_maps.tsv: not generated, no tracks available\n")
+        
+        runlog.write("\nDerived interpretation tables\n")
+        runlog.write("-" * 20 + "\n")
+
+        for path in local_prediction_paths:
+            runlog.write(f"{path.name}\n")
 
         if top_positive_path is not None:
             runlog.write(f"{top_positive_path.name}\n")
@@ -1198,6 +1421,7 @@ def write_runlog(
         "predict_variant_track_summary.tsv: not generated\n"
         )
         
+
 # -----------------------------------------------
 # 8) Main workflow
 # -----------------------------------------------
@@ -1205,7 +1429,9 @@ def write_runlog(
 def main():
 
     args = parse_arguments()
-
+    args.top_n = validate_top_n(args.top_n)
+    args.ontology_curie = validate_ontology_curie(args.ontology_curie)
+    
     output_dir = Path(args.output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
     
@@ -1227,13 +1453,32 @@ def main():
     prediction_object_path = output_dir / "prediction.pkl"
     with open(prediction_object_path, "wb") as f:
         pickle.dump(prediction, f)
-
+    
+    prediction_output_summary = summarize_prediction_outputs(prediction)
     trackdata_paths = export_all_trackdata_outputs(prediction, output_dir)
     splice_sites_path = export_splice_sites_wide_from_prediction(prediction, output_dir)
-    if splice_sites_path is not None:
-        trackdata_paths.append(splice_sites_path)
     splice_junctions_path = export_splice_junctions(prediction, output_dir)
     contact_maps_path = export_contact_maps(prediction, output_dir)
+    
+    exported_prediction_paths = []
+    exported_prediction_paths.extend(trackdata_paths)
+    
+    if splice_sites_path is not None:
+        exported_prediction_paths.append(splice_sites_path)
+    if splice_junctions_path is not None:
+        exported_prediction_paths.append(splice_junctions_path)
+    if contact_maps_path is not None:
+        exported_prediction_paths.append(contact_maps_path)
+    
+    export_status_table = build_export_status_table(
+        prediction_output_summary,
+        exported_prediction_paths
+    )
+    export_status_path = export_status_table_to_tsv(
+        export_status_table,
+        output_dir
+    )   
+    
     top_positive_path, top_negative_path = export_global_delta_tops(output_dir, args.top_n)
     local_prediction_paths = export_local_prediction_views(output_dir, local_window)
     track_summary_path = export_track_summary(output_dir)
@@ -1252,27 +1497,60 @@ def main():
     score_table_path,
     merged_splicing_path,
     prediction_object_path,
+    prediction_output_summary,
+    export_status_table,
+    export_status_path,
     trackdata_paths,
+    splice_sites_path,
     splice_junctions_path,
     contact_maps_path,
     top_positive_path,
     top_negative_path,
 )
     
-    print("AlphaGenome DNA model client created successfully.")
-    print("score_variant() completed successfully.")
-    print(f"Complete score table saved to: {score_table_path}")
-    print("predict_variant() completed successfully.")
-    print(f"TrackData prediction tables saved: {len(trackdata_paths)}")
-    print(f"Splice junctions prediction table saved to: {splice_junctions_path}")
-    print(f"Contact maps prediction table saved to: {contact_maps_path}")
-    print(f"Top positive delta table saved to: {top_positive_path}")
-    print(f"Top negative delta table saved to: {top_negative_path}")
-    print(f"Track summary table saved to: {track_summary_path}")
-    print("Runlog created successfully.")
-        
+    print("\nAlphaGenome variant pipeline completed successfully.")
+    print(f"Output directory: {output_dir}")
+    print(f"Runlog: {output_dir / 'runlog.txt'}")
+    print(f"Prediction object: {prediction_object_path}")
+    print(f"Score table: {score_table_path}")
+    print(f"Merged splicing score table: {merged_splicing_path}")
+    print(f"Export status table: {export_status_path}")
+    print(f"Primary predict_variant tables: {len(exported_prediction_paths)}")
+    print(f"Local interpretation tables: {len(local_prediction_paths)}")
 
+    if top_positive_path is not None:
+        print(f"Top positive delta table: {top_positive_path}")
+
+    if top_negative_path is not None:
+        print(f"Top negative delta table: {top_negative_path}")
+
+    if track_summary_path is not None:
+        print(f"Track summary table: {track_summary_path}")
+        
+def run_pipeline():
+    """
+    Run the pipeline with user-friendly error handling.
+    """
+
+    try:
+        main()
+
+    except ValueError as error:
+        print("\nPipeline stopped because the input parameters are not valid.")
+        print(f"Reason: {error}")
+
+    except FileNotFoundError as error:
+        print("\nPipeline stopped because a required file was not found.")
+        print(f"Reason: {error}")
+
+    except Exception as error:
+        print("\nPipeline stopped because an unexpected error occurred.")
+        print(f"Reason: {error}")
+        print(
+            "If this message is unclear, check the input arguments, output directory, "
+            "and AlphaGenome connection."
+        )
 
 
 if __name__ == "__main__":
-    main()
+    run_pipeline()

@@ -84,10 +84,12 @@ Además, se mejoró el manejo de ejecuciones parciales mediante `--output-types`
 
 ## Visualización de predicciones
 
-Se añadió un módulo independiente de visualización para separar el análisis computacional de la generación de figuras.
+Se desarrolló un módulo independiente de visualización (visualize-prediction.py) con el objetivo de separar el análisis computacional de la generación de figuras.
 
-El pipeline principal (run-variant-pipeline.py) ejecuta score_variant() y predict_variant(), exporta tablas estructuradas y guarda el objeto completo de predicción como prediction.pkl.
+Mientras que el pipeline principal (run-variant-pipeline.py) ejecuta score_variant() y predict_variant(), exporta tablas estructuradas y serializa el objeto completo de predicción (prediction.pkl), el script de visualización reutiliza dicho objeto para generar figuras sin realizar nuevas llamadas a la API de AlphaGenome. Esta estrategia mejora la reproducibilidad del análisis, reduce el consumo de recursos y facilita la iteración sobre las representaciones gráficas.
 
-El script de visualización (visualize-prediction.py) carga este objeto y permite generar figuras locales sin repetir llamadas a AlphaGenome. Esta estrategia mejora la reproducibilidad, reduce el uso de la API y permite iterar sobre las figuras de resultados de forma independiente.
+Actualmente, el visualizador permite generar figuras para los principales outputs relacionados con splicing y expresión génica (RNA-seq, splice_sites, splice_site_usage y splice_junctions).
 
-El script de visualización permite actualmente generar figuras locales para RNA-seq, splice_sites, splice_site_usage y splice_junctions. Las figuras integran señal REF vs ALT, delta ALT-REF cuando procede, anotación MANE Select de SEC23B, posición del KI y región de visualización parametrizable. Además, el script genera un visualization_runlog.txt con los argumentos usados, región visualizada, umbrales de selección de junctions y figuras generadas.
+Como mejora respecto a versiones anteriores, la anotación génica deja de estar codificada específicamente para SEC23B y pasa a obtenerse automáticamente a partir de un archivo GTF compatible con GRCh38. El script selecciona por defecto el transcrito MANE Select, aunque permite indicar un transcrito concreto cuando sea necesario. De este modo, el visualizador puede reutilizarse para cualquier gen presente en el archivo de anotación.
+
+Además, el proceso genera automáticamente un visualization_runlog.txt, donde quedan registrados los parámetros de visualización, el transcrito utilizado, la región representada y las figuras generadas, favoreciendo la trazabilidad del análisis. En el caso de splice_junctions, también se exporta una tabla con las junctions finalmente representadas en la figura, facilitando la revisión e interpretación posterior.
