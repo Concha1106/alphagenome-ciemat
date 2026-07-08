@@ -81,7 +81,9 @@ alphagenome-ciemat/
 ├── docs/                     # Documentación (manifest, paper, etc.)
 ├── config/                   # Configuración
 ├── environment/              # Entorno reproducible (environment.yml)
-└── README.md                 # Documentación general del proyecto
+└── README.md                 # Documentación general del proyeto
+-- common.py                  # Funciones reutilizables compartidas
+-- config.py                  # Constantes compartidas para visualización
 
 ## Progreso
 
@@ -211,6 +213,11 @@ alphagenome-ciemat/
 - Incorporación de visualization_runlog.txt para registrar parámetros de visualización, región usada, umbrales de junctions seleccionadas y figuras generadas.
 - Queda pendiente unificar estilo visual entre figuras y refactorizar el script.
 
+## Días 59-62
+- Refactorización del script de visualización para reducir código duplicado y mejorar su mantenibilidad.
+- Homogeneización del diseño de las figuras generadas y reorganización interna del código.
+
+
 ## Experimentos
 
 ### exp01 — Installation Test
@@ -276,6 +283,10 @@ Estado actual:
 - validación previa de argumentos y mensajes de error orientados al usuario;
 - generación automática de visualization_runlog.txt;
 - exportación automática de la tabla de splice junctions representadas.
+- refactorización del visualizador mediante funciones auxiliares compartidas para reducir duplicación de código;
+- centralización de constantes de representación gráfica en `config.py`;
+- reorganización del script de visualización por bloques funcionales para mejorar su legibilidad y mantenimiento;
+- homogeneización del diseño de las figuras generadas.
 
 ## Entorno
 

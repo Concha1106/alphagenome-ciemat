@@ -18,6 +18,10 @@ and generates local biological visualizations for:
 The script is intended to complement run-variant-pipeline.py.
 """
 
+# -----------------------------------------------
+# 1) Imports
+# -----------------------------------------------
+
 import argparse
 import pickle
 from pathlib import Path
@@ -28,21 +32,24 @@ import matplotlib.pyplot as plt
 from matplotlib.patches import Arc
 from matplotlib.lines import Line2D
 
+from config import (
+    REF_COLOR,
+    ALT_COLOR,
+    DELTA_COLOR,
+    DELTA_SECOND_COLOR,
+    EXON_COLOR,
+    INTRON_COLOR,
+    VARIANT_COLOR,
+    RNA_SEQ_LABEL,
+    SPLICE_SITES_LABEL,
+    SPLICE_SITE_USAGE_LABEL,
+    SPLICE_JUNCTIONS_LABEL,
+    FIGURE_DPI,
+)
 
-REF_COLOR = "#1f77b4"      # azul
-ALT_COLOR = "#7a0019"      # granate
-DELTA_COLOR = "#ff8c00"    # naranja
-DELTA_SECOND_COLOR = REF_COLOR
-
-EXON_COLOR = "#1f77b4"     # azul
-INTRON_COLOR = "#7a0019"   # granate
-VARIANT_COLOR = "#D4A017"  # amarillo intenso (gold)
-
-RNA_SEQ_LABEL = "RNA-seq"
-SPLICE_SITES_LABEL = "Splice sites"
-SPLICE_SITE_USAGE_LABEL = "Splice site usage"
-SPLICE_JUNCTIONS_LABEL = "Splice junctions"
-
+# -----------------------------------------------
+# 2) Argument parsing
+# -----------------------------------------------
 
 def parse_arguments():
     parser = argparse.ArgumentParser(
@@ -156,6 +163,9 @@ def parse_arguments():
 
     return parser.parse_args()
 
+# -----------------------------------------------
+# 3) Validations
+# -----------------------------------------------
 
 def validate_existing_file(path, argument_name):
     """
@@ -264,6 +274,10 @@ def validate_annotation_arguments(args):
         args.annotation_gtf,
         "--annotation-gtf"
     )
+
+# -----------------------------------------------
+# 4) Data loading
+# -----------------------------------------------
 
 def get_available_prediction_outputs(prediction):
     """
@@ -392,6 +406,10 @@ def resolve_variant_position(args, runlog_path):
 
     return None
 
+# -----------------------------------------------
+# 5) Data conversion
+# -----------------------------------------------
+
 def trackdata_to_local_dataframe(ref_data, alt_data, region_start, region_end, track_index=0):
     """
     Convert one AlphaGenome TrackData track into a local REF/ALT dataframe.
@@ -434,568 +452,107 @@ def trackdata_to_local_dataframe(ref_data, alt_data, region_start, region_end, t
 
     return local_df
 
-def plot_mane_annotation_track(
-    ax,
-    annotation_df,
-    region_start,
-    region_end,
-    variant_pos=None,
-    transcript_info=None,
-):
+def junctiondata_to_delta_dataframe(ref_junctions, alt_junctions, strand, region_start, region_end):
     """
-    Plot MANE Select exon/intron annotation in a dedicated axis.
+    Convert AlphaGenome splice_junctions REF/ALT into a local dataframe
+    with delta values.
+
+    One row = one splice junction.
     """
 
-    local_annotation = filter_annotation_to_region(
-        annotation_df,
-        region_start,
-        region_end
-    )
+    rows = []
 
-    ax.set_ylim(-0.5, 1.8)
-    ax.set_yticks([0, 1])
-    ax.set_yticklabels(["introns", "exons"])
-    if transcript_info is not None:
-        gene_name = transcript_info.get("gene_name", "Gene")
-        selection_method = transcript_info.get("selection_method", "selected_transcript")
-        selection_label = selection_method.replace("_", " ")
+    for junction_index, (junction, ref_values, alt_values) in enumerate(zip(
+        ref_junctions.junctions,
+        ref_junctions.values,
+        alt_junctions.values,
+    )):
+        if junction.strand != strand:
+            continue
 
-        ax.set_title(f"{gene_name} {selection_label} annotation")
-    else:
-        ax.set_title("Gene annotation")
+        junction_start_1based = junction.start + 1
+        junction_end_1based = junction.end
 
-    if transcript_info is not None:
-        gene_strand = transcript_info.get("strand")
-
-        if gene_strand == "-":
-            ax.text(
-                0.99,
-                1.05,
-                "Gene strand: − | transcription direction: ←",
-                transform=ax.transAxes,
-                ha="right",
-                va="bottom",
-                fontsize=8,
-                color="black",
-            )
-
-        elif gene_strand == "+":
-            ax.text(
-                0.99,
-                1.05,
-                "Gene strand: + | transcription direction: →",
-                transform=ax.transAxes,
-                ha="right",
-                va="bottom",
-                fontsize=8,
-                color="black",
-            )
-
-
-    ax.tick_params(
-        axis="x",
-        bottom=False,
-        labelbottom=False
-    )
-
-    ax.set_xlabel("")
-
-    for _, row in local_annotation.iterrows():
-        start = row["plot_start"]
-        width = row["plot_end"] - row["plot_start"] + 1
-
-        if row["type"] == "exon":
-            ax.broken_barh(
-                [(start, width)],
-                (0.75, 0.5),
-                facecolors=EXON_COLOR,
-                edgecolors=EXON_COLOR,
-            )
-
-            ax.text(
-                start + width / 2,
-                1.35,
-                row["name"].replace("exon ", "E"),
-                ha="center",
-                va="bottom",
-                fontsize=8,
-                color="black",
-            )
-
-        elif row["type"] == "intron":
-            ax.hlines(
-                y=0,
-                xmin=start,
-                xmax=row["plot_end"],
-                linewidth=1.5,
-                color=INTRON_COLOR,
-            )
-
-            ax.text(
-                start + width / 2,
-                0.15,
-                row["name"].replace("intron ", "I"),
-                ha="center",
-                va="bottom",
-                fontsize=7,
-                color=INTRON_COLOR,
-            )
-
-    if variant_pos is not None:
-        ax.axvline(
-            variant_pos,
-            linestyle="-.",
-            linewidth=1,
-            color=VARIANT_COLOR,
+        overlaps_region = (
+            junction_start_1based <= region_end
+            and junction_end_1based >= region_start
         )
 
-def get_splice_site_track_indices(strand):
-    """
-    Return donor and acceptor track indices for AlphaGenome splice_sites.
+        if not overlaps_region:
+            continue
 
-    AlphaGenome splice_sites metadata:
-    track 0: donor +
-    track 1: acceptor +
-    track 2: donor -
-    track 3: acceptor -
-    """
+        ref_value = float(ref_values[0])
+        alt_value = float(alt_values[0])
+        delta_alt_ref = alt_value - ref_value
 
-    if strand == "+":
-        return {
-            "donor": 0,
-            "acceptor": 1,
-            "strand_label": "plus strand"
-        }
+        rows.append({
+            "junction_index": junction_index,
+            "chromosome": junction.chromosome,
+            "junction_start_1based": junction_start_1based,
+            "junction_end_1based": junction_end_1based,
+            "strand": junction.strand,
+            "ref_value": ref_value,
+            "alt_value": alt_value,
+            "delta_alt_ref": delta_alt_ref,
+            "abs_delta": abs(delta_alt_ref),
+        })
 
-    if strand == "-":
-        return {
-            "donor": 2,
-            "acceptor": 3,
-            "strand_label": "minus strand"
-        }
-
-    raise ValueError(
-        "splice_sites plotting requires strand '+' or '-'. "
-        "Use '--strand +' or '--strand -'."
-    )
-    
-def plot_rna_seq_ref_alt_and_delta(
-    prediction,
-    region_start,
-    region_end,
-    variant_pos,
-    output_dir,
-    title,
-    annotation_df=None,
-    transcript_info=None
-):
-    """
-    Plot RNA-seq REF vs ALT, ALT-REF delta, and optional gene annotation track.
-    """
-
-    ref_data = prediction.reference.rna_seq
-    alt_data = prediction.alternate.rna_seq
-
-    if ref_data is None or alt_data is None:
-        print("Skipping RNA-seq: output not available.")
-        return None
-
-    df = trackdata_to_local_dataframe(
-        ref_data=ref_data,
-        alt_data=alt_data,
-        region_start=region_start,
-        region_end=region_end,
-        track_index=0
-    )
+    df = pd.DataFrame(rows)
 
     if df.empty:
-        print("Skipping RNA-seq: no data in selected local region.")
-        return None
+        return df
 
-    track_name = ref_data.metadata.iloc[0].get("name", "RNA-seq")
+    return df.sort_values("abs_delta", ascending=False).reset_index(drop=True)
 
-    if annotation_df is not None:
-        fig, axes = plt.subplots(
-            nrows=3,
-            ncols=1,
-            figsize=(12, 7),
-            sharex=True,
-            gridspec_kw={"height_ratios": [0.6, 2, 1]}
-        )
-        ax_annot, ax_signal, ax_delta = axes
-    else:
-        fig, axes = plt.subplots(
-            nrows=2,
-            ncols=1,
-            figsize=(12, 6),
-            sharex=True,
-            gridspec_kw={"height_ratios": [2, 1]}
-        )
-        ax_signal, ax_delta = axes
-        ax_annot = None
-
-    ax_signal.plot(df["genomic_position_1based"], df["ref_value"], label="REF", color=REF_COLOR)
-    ax_signal.plot(df["genomic_position_1based"], df["alt_value"], label="ALT", color=ALT_COLOR)
-    ax_signal.set_ylabel("Predicted RNA-seq signal")
-    ax_signal.set_title(f"{title} — {RNA_SEQ_LABEL}: REF vs ALT\n{track_name}")
-    ax_signal.legend()
-
-    ax_delta.axhline(0, linestyle="--", linewidth=1)
-    ax_delta.fill_between(df["genomic_position_1based"], 0, df["delta_alt_ref"], color=DELTA_COLOR,
-    alpha=0.35,)
-
-    ax_delta.plot(df["genomic_position_1based"], df["delta_alt_ref"], color=DELTA_COLOR, linewidth=1, label="ALT - REF",)
-
-    ax_delta.legend(loc="upper right")
-
-    if variant_pos is not None:
-        ax_signal.axvline(variant_pos, linestyle="-.", linewidth=1, color=VARIANT_COLOR, )
-        ax_signal.text(variant_pos -150, ax_signal.get_ylim()[1] * 0.95, f"KI\n({variant_pos:,})", color=VARIANT_COLOR, ha="right", va="top", fontweight="bold", fontsize=9, )
-        ax_delta.axvline(variant_pos, linestyle="-.", linewidth=1, color=VARIANT_COLOR, )
-
-    if ax_annot is not None:
-        plot_mane_annotation_track(
-            ax=ax_annot,
-            annotation_df=annotation_df,
-            region_start=region_start,
-            region_end=region_end,
-            variant_pos=variant_pos,
-            transcript_info=transcript_info,
-        )
-
-    else:
-        ax_delta.set_xlabel("Genomic position (1-based)")
-
-    fig.tight_layout()
-
-    output_path = output_dir / "01_rna_seq.png"
-    fig.savefig(output_path, dpi=300)
-    plt.close(fig)
-
-    print(f"{RNA_SEQ_LABEL} figure saved to: {output_path}")
-
-    return output_path
-
-def plot_splice_sites(
-    prediction,
-    region_start,
-    region_end,
-    variant_pos,
-    output_dir,
-    title,
-    strand,
-    annotation_df=None,
-    transcript_info=None
+def select_junctions_by_directional_delta(
+    junction_df,
+    min_positive_delta,
+    max_negative_delta,
 ):
     """
-    Plot AlphaGenome splice_sites for donor and acceptor tracks
-    in the selected strand.
+    Select junctions by directional ALT-REF delta.
+
+    Increased junctions:
+        delta_alt_ref >= min_positive_delta
+
+    Decreased junctions:
+        delta_alt_ref <= max_negative_delta
     """
 
-    ref_data = prediction.reference.splice_sites
-    alt_data = prediction.alternate.splice_sites
+    if junction_df.empty:
+        return junction_df
 
-    if ref_data is None or alt_data is None:
-        print("Skipping splice_sites: output not available.")
-        return None
+    selected_df = junction_df[
+        (junction_df["delta_alt_ref"] >= min_positive_delta)
+        |
+        (junction_df["delta_alt_ref"] <= max_negative_delta)
+    ].copy()
 
-    indices = get_splice_site_track_indices(strand)
+    if selected_df.empty:
+        return selected_df
 
-    donor_df = trackdata_to_local_dataframe(
-        ref_data=ref_data,
-        alt_data=alt_data,
-        region_start=region_start,
-        region_end=region_end,
-        track_index=indices["donor"]
-    )
+    selected_df["change_type"] = "unchanged"
 
-    acceptor_df = trackdata_to_local_dataframe(
-        ref_data=ref_data,
-        alt_data=alt_data,
-        region_start=region_start,
-        region_end=region_end,
-        track_index=indices["acceptor"]
-    )
+    selected_df.loc[
+        selected_df["delta_alt_ref"] >= min_positive_delta,
+        "change_type"
+    ] = "increased"
 
-    if donor_df.empty and acceptor_df.empty:
-        print("Skipping splice_sites: no data in selected local region.")
-        return None
+    selected_df.loc[
+        selected_df["delta_alt_ref"] <= max_negative_delta,
+        "change_type"
+    ] = "decreased"
 
-    if annotation_df is not None:
-        fig, axes = plt.subplots(
-            nrows=4,
-            ncols=1,
-            figsize=(12, 8),
-            sharex=True,
-            gridspec_kw={"height_ratios": [0.6, 1.5, 1.5, 1]}
-        )
-        ax_annot, ax_donor, ax_acceptor, ax_delta = axes
-    else:
-        fig, axes = plt.subplots(
-            nrows=2,
-            ncols=1,
-            figsize=(12, 6),
-            sharex=True,
-            gridspec_kw={"height_ratios": [2, 1]}
-        )
-        ax_signal, ax_delta = axes
-        ax_annot = None
+    selected_df = selected_df.sort_values(
+        by="abs_delta",
+        ascending=False
+    ).reset_index(drop=True)
 
-    x_donor = donor_df["genomic_position_1based"]
-    x_acceptor = acceptor_df["genomic_position_1based"]
+    return selected_df
 
-    ax_donor.plot(x_donor, donor_df["ref_value"], label="REF donor", color=REF_COLOR, linestyle="-", linewidth=1.2,)
-    ax_donor.plot(x_donor, donor_df["alt_value"], label="ALT donor", color=ALT_COLOR, linestyle="--", linewidth=1.2,)
-    ax_donor.set_ylabel("Predicted donor probability")
-    ax_donor.set_title(f"{title} — splice_sites REF vs ALT\n{indices['strand_label']}")
-    ax_donor.legend(loc="lower right", bbox_to_anchor=(0.90,0.70),)
-    
-    ax_acceptor.plot(x_acceptor, acceptor_df["ref_value"], label="REF acceptor", color=REF_COLOR, linestyle="-", linewidth=1.2,)
-    ax_acceptor.plot(x_acceptor, acceptor_df["alt_value"], label="ALT acceptor", color=ALT_COLOR, linestyle="--", linewidth=1.2,)
-    ax_acceptor.set_ylabel("Predicted acceptor probability")
-    ax_acceptor.legend(loc="lower right", bbox_to_anchor=(0.90, 0.70),)
-
-
-    ax_delta.axhline(0, linestyle="--", linewidth=1)
-
-    ax_delta.plot(
-        x_donor,
-        donor_df["delta_alt_ref"],
-        color=DELTA_COLOR,
-        linewidth=1,
-        label="ALT - REF donor",
-    )
-
-    ax_delta.plot(
-        x_acceptor,
-        acceptor_df["delta_alt_ref"],
-        color=DELTA_SECOND_COLOR,
-        linewidth=1,
-        linestyle="--",
-        label="ALT - REF acceptor",
-    )
-
-    ax_delta.set_ylabel("ALT - REF")
-    ax_delta.legend(loc="upper right")
-
-    if variant_pos is not None:
-        for ax in [ax_donor, ax_acceptor, ax_delta]:
-            ax.axvline(
-                variant_pos,
-                linestyle="-.",
-                linewidth=1,
-                color=VARIANT_COLOR,
-            )   
-
-        ax_donor.text(
-            variant_pos - 150,
-            ax_donor.get_ylim()[1] * 0.95,
-            f"KI\n({variant_pos:,})",
-            color=VARIANT_COLOR,
-            ha="right",
-            va="top",
-            fontweight="bold",
-            fontsize=9,
-        )     
-
-    if ax_annot is not None:
-        plot_mane_annotation_track(
-            ax=ax_annot,
-            annotation_df=annotation_df,
-            region_start=region_start,
-            region_end=region_end,
-            variant_pos=variant_pos,
-            transcript_info=transcript_info,
-        )
-    else:
-        ax_delta.set_xlabel("Genomic position (1-based)") 
-
-    fig.tight_layout()
-
-    strand_suffix = "plus" if strand == "+" else "minus"
-    output_path = output_dir / f"02_splice_sites_{strand_suffix}.png"
-
-    fig.savefig(output_path, dpi=300)
-    plt.close(fig)
-
-    print(f"{SPLICE_SITES_LABEL} figure saved to: {output_path}")
-
-    return output_path
-
-def get_splice_site_usage_track_index(strand):
-    """
-    Return track index for AlphaGenome splice_site_usage.
-
-    AlphaGenome splice_site_usage metadata:
-    track 0: usage, plus strand
-    track 1: usage, minus strand
-    """
-
-    if strand == "+":
-        return {
-            "track_index": 0,
-            "strand_label": "plus strand"
-        }
-
-    if strand == "-":
-        return {
-            "track_index": 1,
-            "strand_label": "minus strand"
-        }
-
-    raise ValueError(
-        "splice_site_usage plotting requires strand '+' or '-'. "
-        "Use '--strand +' or '--strand -'."
-    )
-
-def plot_splice_site_usage(
-    prediction,
-    region_start,
-    region_end,
-    variant_pos,
-    output_dir,
-    title,
-    strand,
-    annotation_df=None,
-    transcript_info=None
-):
-    """
-    Plot AlphaGenome splice_site_usage REF vs ALT and ALT-REF delta
-    for the selected strand.
-    """
-
-    ref_data = prediction.reference.splice_site_usage
-    alt_data = prediction.alternate.splice_site_usage
-
-    if ref_data is None or alt_data is None:
-        print("Skipping splice_site_usage: output not available.")
-        return None
-
-    usage_info = get_splice_site_usage_track_index(strand)
-
-    df = trackdata_to_local_dataframe(
-        ref_data=ref_data,
-        alt_data=alt_data,
-        region_start=region_start,
-        region_end=region_end,
-        track_index=usage_info["track_index"]
-    )
-
-    if df.empty:
-        print("Skipping splice_site_usage: no data in selected local region.")
-        return None
-
-    if annotation_df is not None:
-        fig, axes = plt.subplots(
-            nrows=3,
-            ncols=1,
-            figsize=(12, 7),
-            sharex=True,
-            gridspec_kw={"height_ratios": [0.6, 2, 1]}
-            )
-        ax_annot, ax_signal, ax_delta = axes
-    else:
-        fig, axes = plt.subplots(
-            nrows=2,
-            ncols=1,
-            figsize=(12, 6),
-            sharex=True,
-            gridspec_kw={"height_ratios": [2, 1]}
-        )
-        ax_signal, ax_delta = axes
-        ax_annot = None
-
-    ax_signal.plot(
-        df["genomic_position_1based"],
-        df["ref_value"],
-        label="REF",
-        color=REF_COLOR,
-        linewidth=1.2,
-    )
-
-    ax_signal.plot(
-        df["genomic_position_1based"],
-        df["alt_value"],
-        label="ALT",
-        color=ALT_COLOR,
-        linestyle="--",
-        linewidth=1.2,
-    )
-
-    ax_signal.set_ylabel("Predicted site usage")
-    ax_signal.set_title(f"{title} — {SPLICE_SITE_USAGE_LABEL}: REF vs ALT\n{usage_info['strand_label']}")
-    ax_signal.legend(loc="upper right", bbox_to_anchor=(0.90, 1.00))
-
-    ax_delta.axhline(0, linestyle="--", linewidth=1)
-
-    ax_delta.fill_between(
-        df["genomic_position_1based"],
-        0,
-        df["delta_alt_ref"],
-        color=DELTA_COLOR,
-        alpha=0.35,
-    )
-
-    ax_delta.plot(
-        df["genomic_position_1based"],
-        df["delta_alt_ref"],
-        color=DELTA_COLOR,
-        linewidth=1,
-        label="ALT - REF",
-    )
-
-    ax_delta.set_ylabel("ALT - REF")
-    ax_delta.legend(loc="upper right")
-
-    if variant_pos is not None:
-        ax_signal.axvline(
-            variant_pos,
-            linestyle="-.",
-            linewidth=1,
-            color=VARIANT_COLOR,
-        )
-
-        ax_signal.text(
-            variant_pos -150,
-            ax_signal.get_ylim()[1] * 0.95,
-            f"KI\n({variant_pos:,})",
-            color=VARIANT_COLOR,
-            ha="right",
-            va="top",
-            fontweight="bold",
-            fontsize=9,
-        )
-
-        ax_delta.axvline(
-            variant_pos,
-            linestyle="-.",
-            linewidth=1,
-            color=VARIANT_COLOR,
-        )
-
-    if ax_annot is not None:
-        plot_mane_annotation_track(
-            ax=ax_annot,
-            annotation_df=annotation_df,
-            region_start=region_start,
-            region_end=region_end,
-            variant_pos=variant_pos,
-            transcript_info=transcript_info,
-        )
-    else:
-        ax_delta.set_xlabel("Genomic position (1-based)")
-
-    fig.tight_layout()
-
-    strand_suffix = "plus" if strand == "+" else "minus"
-    output_path = output_dir / f"03_splice_site_usage_{strand_suffix}.png"
-
-    fig.savefig(output_path, dpi=300)
-    plt.close(fig)
-
-    print(f"{SPLICE_SITE_USAGE_LABEL} figure saved to: {output_path}")
-
-    return output_path
+# -----------------------------------------------
+# 6) Annotation
+# -----------------------------------------------
 
 def parse_gtf_attributes(attribute_text):
     """
@@ -1292,9 +849,6 @@ def resolve_annotation(args):
 
     return None, transcript_info
 
-
-
-
 def filter_annotation_to_region(annotation_df, region_start, region_end):
     """
     Keep only exon/intron annotations overlapping the plotted local region.
@@ -1311,104 +865,112 @@ def filter_annotation_to_region(annotation_df, region_start, region_end):
 
     return local_annotation
 
-def junctiondata_to_delta_dataframe(ref_junctions, alt_junctions, strand, region_start, region_end):
+# -----------------------------------------------
+# 7) Plotting helpers
+# -----------------------------------------------
+
+def get_splice_site_track_indices(strand):
     """
-    Convert AlphaGenome splice_junctions REF/ALT into a local dataframe
-    with delta values.
+    Return donor and acceptor track indices for AlphaGenome splice_sites.
 
-    One row = one splice junction.
+    AlphaGenome splice_sites metadata:
+    track 0: donor +
+    track 1: acceptor +
+    track 2: donor -
+    track 3: acceptor -
     """
 
-    rows = []
+    if strand == "+":
+        return {
+            "donor": 0,
+            "acceptor": 1,
+            "strand_label": "plus strand"
+        }
 
-    for junction_index, (junction, ref_values, alt_values) in enumerate(zip(
-        ref_junctions.junctions,
-        ref_junctions.values,
-        alt_junctions.values,
-    )):
-        if junction.strand != strand:
-            continue
+    if strand == "-":
+        return {
+            "donor": 2,
+            "acceptor": 3,
+            "strand_label": "minus strand"
+        }
 
-        junction_start_1based = junction.start + 1
-        junction_end_1based = junction.end
+    raise ValueError(
+        "splice_sites plotting requires strand '+' or '-'. "
+        "Use '--strand +' or '--strand -'."
+    )
+ 
+def get_splice_site_usage_track_index(strand):
+    """
+    Return track index for AlphaGenome splice_site_usage.
 
-        overlaps_region = (
-            junction_start_1based <= region_end
-            and junction_end_1based >= region_start
-        )
+    AlphaGenome splice_site_usage metadata:
+    track 0: usage, plus strand
+    track 1: usage, minus strand
+    """
 
-        if not overlaps_region:
-            continue
+    if strand == "+":
+        return {
+            "track_index": 0,
+            "strand_label": "plus strand"
+        }
 
-        ref_value = float(ref_values[0])
-        alt_value = float(alt_values[0])
-        delta_alt_ref = alt_value - ref_value
+    if strand == "-":
+        return {
+            "track_index": 1,
+            "strand_label": "minus strand"
+        }
 
-        rows.append({
-            "junction_index": junction_index,
-            "chromosome": junction.chromosome,
-            "junction_start_1based": junction_start_1based,
-            "junction_end_1based": junction_end_1based,
-            "strand": junction.strand,
-            "ref_value": ref_value,
-            "alt_value": alt_value,
-            "delta_alt_ref": delta_alt_ref,
-            "abs_delta": abs(delta_alt_ref),
-        })
-
-    df = pd.DataFrame(rows)
-
-    if df.empty:
-        return df
-
-    return df.sort_values("abs_delta", ascending=False).reset_index(drop=True)
-
-def select_junctions_by_directional_delta(
-    junction_df,
-    min_positive_delta,
-    max_negative_delta,
+    raise ValueError(
+        "splice_site_usage plotting requires strand '+' or '-'. "
+        "Use '--strand +' or '--strand -'."
+    )    
+    
+def plot_variant_marker(
+    ax,
+    variant_pos,
+    label="Variant",
+    x_offset=150,
+    y_fraction=0.95,
+    linewidth=1,
 ):
     """
-    Select junctions by directional ALT-REF delta.
-
-    Increased junctions:
-        delta_alt_ref >= min_positive_delta
-
-    Decreased junctions:
-        delta_alt_ref <= max_negative_delta
+    Draw the variant position as a vertical line and optional label.
     """
 
-    if junction_df.empty:
-        return junction_df
+    if variant_pos is None:
+        return
 
-    selected_df = junction_df[
-        (junction_df["delta_alt_ref"] >= min_positive_delta)
-        |
-        (junction_df["delta_alt_ref"] <= max_negative_delta)
-    ].copy()
+    ax.axvline(
+        variant_pos,
+        linestyle="-.",
+        linewidth=linewidth,
+        color=VARIANT_COLOR,
+    )
 
-    if selected_df.empty:
-        return selected_df
+    y_min, y_max = ax.get_ylim()
+    y_pos = y_min + (y_max - y_min) * y_fraction
 
-    selected_df["change_type"] = "unchanged"
+    if label is not None:
+        ax.text(
+            variant_pos - x_offset,
+            y_pos,
+            f"{label}\n({variant_pos:,})",
+            color=VARIANT_COLOR,
+            ha="right",
+            va="top",
+            fontweight="bold",
+            fontsize=9,
+        )
+def save_figure(fig, output_path, figure_label):
+    """
+    Save a matplotlib figure using the shared export configuration.
+    """
 
-    selected_df.loc[
-        selected_df["delta_alt_ref"] >= min_positive_delta,
-        "change_type"
-    ] = "increased"
+    fig.tight_layout()
+    fig.savefig(output_path, dpi=FIGURE_DPI)
+    plt.close(fig)
 
-    selected_df.loc[
-        selected_df["delta_alt_ref"] <= max_negative_delta,
-        "change_type"
-    ] = "decreased"
-
-    selected_df = selected_df.sort_values(
-        by="abs_delta",
-        ascending=False
-    ).reset_index(drop=True)
-
-    return selected_df
-
+    print(f"{figure_label} figure saved to: {output_path}")    
 
 def plot_junction_arc(
     ax,
@@ -1452,6 +1014,483 @@ def plot_junction_arc(
             fontweight="bold",
         )
 
+def plot_mane_annotation_track(
+    ax,
+    annotation_df,
+    region_start,
+    region_end,
+    variant_pos=None,
+    transcript_info=None,
+):
+    """
+    Plot MANE Select exon/intron annotation in a dedicated axis.
+    """
+
+    local_annotation = filter_annotation_to_region(
+        annotation_df,
+        region_start,
+        region_end
+    )
+
+    ax.set_ylim(-0.5, 1.8)
+    ax.set_yticks([0, 1])
+    ax.set_yticklabels(["introns", "exons"])
+    if transcript_info is not None:
+        gene_name = transcript_info.get("gene_name", "Gene")
+        selection_method = transcript_info.get("selection_method", "selected_transcript")
+        selection_label = selection_method.replace("_", " ")
+
+        ax.set_title(f"{gene_name} {selection_label} annotation", fontsize=11,)
+    else:
+        ax.set_title("Gene annotation", fontsize=11,)
+
+    if transcript_info is not None:
+        gene_strand = transcript_info.get("strand")
+
+        if gene_strand == "-":
+            ax.text(
+                0.99,
+                1.05,
+                "Gene strand: − | transcription direction: ←",
+                transform=ax.transAxes,
+                ha="right",
+                va="bottom",
+                fontsize=8,
+                color="black",
+            )
+
+        elif gene_strand == "+":
+            ax.text(
+                0.99,
+                1.05,
+                "Gene strand: + | transcription direction: →",
+                transform=ax.transAxes,
+                ha="right",
+                va="bottom",
+                fontsize=8,
+                color="black",
+            )
+
+
+    ax.tick_params(
+        axis="x",
+        bottom=False,
+        labelbottom=False
+    )
+
+    ax.set_xlabel("")
+    ax.spines["top"].set_visible(False)
+    ax.spines["right"].set_visible(False)
+
+    for _, row in local_annotation.iterrows():
+        start = row["plot_start"]
+        width = row["plot_end"] - row["plot_start"] + 1
+
+        if row["type"] == "exon":
+            ax.broken_barh(
+                [(start, width)],
+                (0.75, 0.5),
+                facecolors=EXON_COLOR,
+                edgecolors=EXON_COLOR,
+            )
+
+            ax.text(
+                start + width / 2,
+                1.35,
+                row["name"].replace("exon ", "E"),
+                ha="center",
+                va="bottom",
+                fontsize=8,
+                color="black",
+            )
+
+        elif row["type"] == "intron":
+            ax.hlines(
+                y=0,
+                xmin=start,
+                xmax=row["plot_end"],
+                linewidth=1.5,
+                color=INTRON_COLOR,
+            )
+
+            ax.text(
+                start + width / 2,
+                0.15,
+                row["name"].replace("intron ", "I"),
+                ha="center",
+                va="bottom",
+                fontsize=7,
+                color=INTRON_COLOR,
+            )
+
+    if variant_pos is not None:
+        ax.axvline(
+            variant_pos,
+            linestyle="-.",
+            linewidth=1,
+            color=VARIANT_COLOR,
+        )
+             
+# -----------------------------------------------
+# 8) Figures
+# -----------------------------------------------
+      
+def plot_rna_seq_ref_alt_and_delta(
+    prediction,
+    region_start,
+    region_end,
+    variant_pos,
+    output_dir,
+    title,
+    annotation_df=None,
+    transcript_info=None
+):
+    """
+    Plot RNA-seq REF vs ALT, ALT-REF delta, and optional gene annotation track.
+    """
+
+    ref_data = prediction.reference.rna_seq
+    alt_data = prediction.alternate.rna_seq
+
+    if ref_data is None or alt_data is None:
+        print("Skipping RNA-seq: output not available.")
+        return None
+
+    df = trackdata_to_local_dataframe(
+        ref_data=ref_data,
+        alt_data=alt_data,
+        region_start=region_start,
+        region_end=region_end,
+        track_index=0
+    )
+
+    if df.empty:
+        print("Skipping RNA-seq: no data in selected local region.")
+        return None
+
+    if annotation_df is not None:
+        fig, axes = plt.subplots(
+            nrows=3,
+            ncols=1,
+            figsize=(12, 7),
+            sharex=True,
+            gridspec_kw={"height_ratios": [0.6, 2, 1]}
+        )
+        ax_annot, ax_signal, ax_delta = axes
+    else:
+        fig, axes = plt.subplots(
+            nrows=2,
+            ncols=1,
+            figsize=(12, 6),
+            sharex=True,
+            gridspec_kw={"height_ratios": [2, 1]}
+        )
+        ax_signal, ax_delta = axes
+        ax_annot = None
+        
+    fig.suptitle(
+        f"{title} — {RNA_SEQ_LABEL}: REF vs ALT",
+        fontsize=14,
+        y=0.98,
+    )
+
+    ax_signal.plot(df["genomic_position_1based"], df["ref_value"], label="REF", color=REF_COLOR)
+    ax_signal.plot(df["genomic_position_1based"], df["alt_value"], label="ALT", color=ALT_COLOR)
+    ax_signal.set_ylabel("Predicted RNA-seq signal")
+    ax_signal.set_title("")
+    ax_signal.legend()
+
+    ax_delta.axhline(0, linestyle="--", linewidth=1)
+    ax_delta.fill_between(df["genomic_position_1based"], 0, df["delta_alt_ref"], color=DELTA_COLOR,
+    alpha=0.35,)
+
+    ax_delta.plot(df["genomic_position_1based"], df["delta_alt_ref"], color=DELTA_COLOR, linewidth=1, label="ALT - REF",)
+
+    ax_delta.legend(loc="upper right")
+
+    if variant_pos is not None:
+        plot_variant_marker(ax_signal, variant_pos)
+        plot_variant_marker(ax_delta, variant_pos, label=None)
+
+    if ax_annot is not None:
+        plot_mane_annotation_track(
+            ax=ax_annot,
+            annotation_df=annotation_df,
+            region_start=region_start,
+            region_end=region_end,
+            variant_pos=variant_pos,
+            transcript_info=transcript_info,
+        )
+
+    else:
+        ax_delta.set_xlabel("Genomic position (1-based)")
+
+    output_path = output_dir / "01_rna_seq.png"
+
+    save_figure(fig=fig, output_path=output_path, figure_label=RNA_SEQ_LABEL,)
+
+    return output_path
+
+def plot_splice_sites(
+    prediction,
+    region_start,
+    region_end,
+    variant_pos,
+    output_dir,
+    title,
+    strand,
+    annotation_df=None,
+    transcript_info=None
+):
+    """
+    Plot AlphaGenome splice_sites for donor and acceptor tracks
+    in the selected strand.
+    """
+
+    ref_data = prediction.reference.splice_sites
+    alt_data = prediction.alternate.splice_sites
+
+    if ref_data is None or alt_data is None:
+        print("Skipping splice_sites: output not available.")
+        return None
+
+    indices = get_splice_site_track_indices(strand)
+
+    donor_df = trackdata_to_local_dataframe(
+        ref_data=ref_data,
+        alt_data=alt_data,
+        region_start=region_start,
+        region_end=region_end,
+        track_index=indices["donor"]
+    )
+
+    acceptor_df = trackdata_to_local_dataframe(
+        ref_data=ref_data,
+        alt_data=alt_data,
+        region_start=region_start,
+        region_end=region_end,
+        track_index=indices["acceptor"]
+    )
+
+    if donor_df.empty and acceptor_df.empty:
+        print("Skipping splice_sites: no data in selected local region.")
+        return None
+
+    if annotation_df is not None:
+        fig, axes = plt.subplots(
+            nrows=4,
+            ncols=1,
+            figsize=(12, 8),
+            sharex=True,
+            gridspec_kw={"height_ratios": [0.6, 1.5, 1.5, 1]}
+        )
+        ax_annot, ax_donor, ax_acceptor, ax_delta = axes
+    else:
+        fig, axes = plt.subplots(
+            nrows=3,
+            ncols=1,
+            figsize=(12, 7),
+            sharex=True,
+            gridspec_kw={"height_ratios": [1.5, 1.5, 1]}
+        )
+        ax_donor, ax_acceptor, ax_delta = axes
+        ax_annot = None
+    
+    fig.suptitle(
+        f"{title} — {SPLICE_SITES_LABEL}: REF vs ALT",
+        fontsize=14,
+        y=0.98,
+    )
+
+    x_donor = donor_df["genomic_position_1based"]
+    x_acceptor = acceptor_df["genomic_position_1based"]
+
+    ax_donor.plot(x_donor, donor_df["ref_value"], label="REF donor", color=REF_COLOR, linestyle="-", linewidth=1.2,)
+    ax_donor.plot(x_donor, donor_df["alt_value"], label="ALT donor", color=ALT_COLOR, linestyle="--", linewidth=1.2,)
+    ax_donor.set_ylabel("Predicted donor probability")
+    ax_donor.set_title("")
+    ax_donor.legend(loc="lower right", bbox_to_anchor=(0.90,0.70),)
+    
+    ax_acceptor.plot(x_acceptor, acceptor_df["ref_value"], label="REF acceptor", color=REF_COLOR, linestyle="-", linewidth=1.2,)
+    ax_acceptor.plot(x_acceptor, acceptor_df["alt_value"], label="ALT acceptor", color=ALT_COLOR, linestyle="--", linewidth=1.2,)
+    ax_acceptor.set_ylabel("Predicted acceptor probability")
+    ax_acceptor.legend(loc="lower right", bbox_to_anchor=(0.90, 0.70),)
+
+
+    ax_delta.axhline(0, linestyle="--", linewidth=1)
+
+    ax_delta.plot(
+        x_donor,
+        donor_df["delta_alt_ref"],
+        color=DELTA_COLOR,
+        linewidth=1,
+        label="ALT - REF donor",
+    )
+
+    ax_delta.plot(
+        x_acceptor,
+        acceptor_df["delta_alt_ref"],
+        color=DELTA_SECOND_COLOR,
+        linewidth=1,
+        linestyle="--",
+        label="ALT - REF acceptor",
+    )
+
+    ax_delta.set_ylabel("ALT - REF")
+    ax_delta.legend(loc="upper right")
+
+    if variant_pos is not None:
+        plot_variant_marker(ax_donor, variant_pos)
+        plot_variant_marker(ax_acceptor, variant_pos, label=None)
+        plot_variant_marker(ax_delta, variant_pos, label=None)
+
+    if ax_annot is not None:
+        plot_mane_annotation_track(
+            ax=ax_annot,
+            annotation_df=annotation_df,
+            region_start=region_start,
+            region_end=region_end,
+            variant_pos=variant_pos,
+            transcript_info=transcript_info,
+        )
+    else:
+        ax_delta.set_xlabel("Genomic position (1-based)") 
+
+    strand_suffix = "plus" if strand == "+" else "minus"
+    output_path = output_dir / f"02_splice_sites_{strand_suffix}.png"
+
+    save_figure(fig=fig, output_path=output_path, figure_label=SPLICE_SITES_LABEL,)
+
+    return output_path
+
+
+def plot_splice_site_usage(
+    prediction,
+    region_start,
+    region_end,
+    variant_pos,
+    output_dir,
+    title,
+    strand,
+    annotation_df=None,
+    transcript_info=None
+):
+    """
+    Plot AlphaGenome splice_site_usage REF vs ALT and ALT-REF delta
+    for the selected strand.
+    """
+
+    ref_data = prediction.reference.splice_site_usage
+    alt_data = prediction.alternate.splice_site_usage
+
+    if ref_data is None or alt_data is None:
+        print("Skipping splice_site_usage: output not available.")
+        return None
+
+    usage_info = get_splice_site_usage_track_index(strand)
+
+    df = trackdata_to_local_dataframe(
+        ref_data=ref_data,
+        alt_data=alt_data,
+        region_start=region_start,
+        region_end=region_end,
+        track_index=usage_info["track_index"]
+    )
+
+    if df.empty:
+        print("Skipping splice_site_usage: no data in selected local region.")
+        return None
+
+    if annotation_df is not None:
+        fig, axes = plt.subplots(
+            nrows=3,
+            ncols=1,
+            figsize=(12, 7),
+            sharex=True,
+            gridspec_kw={"height_ratios": [0.6, 2, 1]}
+            )
+        ax_annot, ax_signal, ax_delta = axes
+    else:
+        fig, axes = plt.subplots(
+            nrows=2,
+            ncols=1,
+            figsize=(12, 6),
+            sharex=True,
+            gridspec_kw={"height_ratios": [2, 1]}
+        )
+        ax_signal, ax_delta = axes
+        ax_annot = None
+
+    fig.suptitle(
+        f"{title} — {SPLICE_SITE_USAGE_LABEL}: REF vs ALT",
+        fontsize=14,
+        y=0.98,
+        )
+
+    ax_signal.plot(
+        df["genomic_position_1based"],
+        df["ref_value"],
+        label="REF",
+        color=REF_COLOR,
+        linewidth=1.2,
+    )
+
+    ax_signal.plot(
+        df["genomic_position_1based"],
+        df["alt_value"],
+        label="ALT",
+        color=ALT_COLOR,
+        linestyle="--",
+        linewidth=1.2,
+    )
+
+    ax_signal.set_ylabel("Predicted site usage")
+    ax_signal.set_title("")
+    ax_signal.legend(loc="upper right", bbox_to_anchor=(0.90, 1.00))
+
+    ax_delta.axhline(0, linestyle="--", linewidth=1)
+
+    ax_delta.fill_between(
+        df["genomic_position_1based"],
+        0,
+        df["delta_alt_ref"],
+        color=DELTA_COLOR,
+        alpha=0.35,
+    )
+
+    ax_delta.plot(
+        df["genomic_position_1based"],
+        df["delta_alt_ref"],
+        color=DELTA_COLOR,
+        linewidth=1,
+        label="ALT - REF",
+    )
+
+    ax_delta.set_ylabel("ALT - REF")
+    ax_delta.legend(loc="upper right")
+
+    if variant_pos is not None:
+        plot_variant_marker(ax_signal, variant_pos)
+        plot_variant_marker(ax_delta, variant_pos, label=None)
+
+    if ax_annot is not None:
+        plot_mane_annotation_track(
+            ax=ax_annot,
+            annotation_df=annotation_df,
+            region_start=region_start,
+            region_end=region_end,
+            variant_pos=variant_pos,
+            transcript_info=transcript_info,
+        )
+    else:
+        ax_delta.set_xlabel("Genomic position (1-based)")
+
+    strand_suffix = "plus" if strand == "+" else "minus"
+    output_path = output_dir / f"03_splice_site_usage_{strand_suffix}.png"
+
+    save_figure(fig=fig, output_path=output_path, figure_label=SPLICE_SITE_USAGE_LABEL,)
+    
+    return output_path
 
 def plot_selected_splice_junctions(
     selected_junctions,
@@ -1483,11 +1522,17 @@ def plot_selected_splice_junctions(
         sharex=True,
         gridspec_kw={"height_ratios": [1, 4]}
     )
-
+    
+    fig.suptitle(
+    f"{title} — selected {SPLICE_JUNCTIONS_LABEL}",
+        fontsize=14,
+        y=0.98,
+    )
+    
     ax_junctions.set_xlim(region_start, region_end)
     ax_junctions.set_ylim(-0.05, 1.35)
 
-    ax_junctions.set_title(f"{title} — selected {SPLICE_JUNCTIONS_LABEL}\n{strand} strand")
+    ax_junctions.set_title("")
 
     ax_junctions.set_xticks([])
     ax_junctions.set_yticks([])
@@ -1545,22 +1590,11 @@ def plot_selected_splice_junctions(
             )
 
     if variant_pos is not None:
-        ax_junctions.axvline(
+        plot_variant_marker(
+            ax_junctions,
             variant_pos,
-            color=VARIANT_COLOR,
-            linestyle="-.",
+            y_fraction=0.95,
             linewidth=1.2,
-        )
-
-        ax_junctions.text(
-            variant_pos - 150,
-            1.20,
-            f"KI\n({variant_pos:,})",
-            color=VARIANT_COLOR,
-            ha="right",
-            va="top",
-            fontsize=9,
-            fontweight="bold",
         )
 
     legend_elements = [
@@ -1586,17 +1620,16 @@ def plot_selected_splice_junctions(
     else:
         ax_annotation.axis("off")
 
-    fig.tight_layout()
-
     strand_suffix = "plus" if strand == "+" else "minus"
     output_path = output_dir / f"04_splice_junctions_{strand_suffix}.png"
 
-    fig.savefig(output_path, dpi=300)
-    plt.close(fig)
-
-    print(f"{SPLICE_JUNCTIONS_LABEL} figure saved to: {output_path}")
+    save_figure(fig=fig, output_path=output_path, figure_label=SPLICE_JUNCTIONS_LABEL,)
 
     return output_path
+
+# -----------------------------------------------
+# 9) Runlog generation
+# -----------------------------------------------
 
 def write_visualization_runlog(
     args,
@@ -1674,6 +1707,10 @@ def write_visualization_runlog(
 
     return runlog_path
 
+# -----------------------------------------------
+# 10) Main workflow
+# -----------------------------------------------
+
 def main():
     args = parse_arguments()
 
@@ -1748,7 +1785,7 @@ def main():
         print("Skipping RNA-seq figure: rna_seq output is not available in prediction.pkl.")
 
     if available_outputs["splice_sites"]:
-        if args.strand in ["+", "-"] and available_outputs["splice_junctions"]:
+        if args.strand in ["+", "-"]:
             splice_sites_path = plot_splice_sites(
                 prediction=prediction,
                 region_start=region_start,
@@ -1813,7 +1850,7 @@ def main():
     
     selected_junctions = pd.DataFrame()
 
-    if args.strand in ["+", "-"]:
+    if args.strand in ["+", "-"] and available_outputs["splice_junctions"]:
         junction_df = junctiondata_to_delta_dataframe(
             ref_junctions=prediction.reference.splice_junctions,
             alt_junctions=prediction.alternate.splice_junctions,

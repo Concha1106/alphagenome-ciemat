@@ -52,20 +52,11 @@ Pipeline funcional.
 Actualmente el script permite:
 
 - recibir una variante mediante argumentos de línea de comandos
-- construir el objeto `Variant` de AlphaGenome
-- construir el intervalo de entrada usando `variant.reference_interval.resize()`
-- ejecutar `score_variant()`
-- exportar la tabla completa `score_variant_all.tsv`
-- ejecutar `predict_variant()` para una ontología concreta indicada mediante `--ontology-curie`
-- exportar predicciones REF, ALT y delta para salidas tipo TrackData
-- exportar predicciones REF, ALT y delta para splice junctions
-- gestionar contact maps, exportándolos solo cuando existan tracks disponibles
-- generar tablas top positivas y negativas por `output_type`
-- registrar parámetros de ejecución en `runlog.txt`
-- guardar el objeto completo predict_variant() como prediction.pkl, permitiendo reutilizar las predicciones sin repetir llamadas a la API
-- registrar prediction.pkl en runlog.txt como archivo generado
-- desarrollar un script independiente de visualización (visualize-prediction.py) basado en el objeto serializado
-- generar una primera figura local de RNA-seq con: señal REF vs ALT, delta ALT-REF, anotación MANE Select de SEC23B, posición y coordenada del KI y región de visualización parametrizable
+- desarrollar un script independiente de visualización (`visualize-prediction.py`) basado en el objeto serializado `prediction.pkl`
+- generar automáticamente figuras para RNA-seq, splice_sites, splice_site_usage y splice_junctions
+- incorporar anotación automática mediante transcritos MANE Select obtenidos desde un archivo GTF compatible con GRCh38
+- permitir la visualización de cualquier gen presente en la anotación
+- generar automáticamente `visualization_runlog.txt` para registrar los parámetros y figuras generadas
 
 ### Optimización de exportación predict_variant
 
@@ -88,8 +79,9 @@ Se desarrolló un módulo independiente de visualización (visualize-prediction.
 
 Mientras que el pipeline principal (run-variant-pipeline.py) ejecuta score_variant() y predict_variant(), exporta tablas estructuradas y serializa el objeto completo de predicción (prediction.pkl), el script de visualización reutiliza dicho objeto para generar figuras sin realizar nuevas llamadas a la API de AlphaGenome. Esta estrategia mejora la reproducibilidad del análisis, reduce el consumo de recursos y facilita la iteración sobre las representaciones gráficas.
 
-Actualmente, el visualizador permite generar figuras para los principales outputs relacionados con splicing y expresión génica (RNA-seq, splice_sites, splice_site_usage y splice_junctions).
+Actualmente, el visualizador permite generar figuras para los principales outputs relacionados con splicing y expresión génica (RNA-seq, splice_sites, splice_site_usage y splice_junctions) a partir del objeto 'prediction.pkl', sin necesidad de repetir llamadas a la API de AlphaGenome.
 
 Como mejora respecto a versiones anteriores, la anotación génica deja de estar codificada específicamente para SEC23B y pasa a obtenerse automáticamente a partir de un archivo GTF compatible con GRCh38. El script selecciona por defecto el transcrito MANE Select, aunque permite indicar un transcrito concreto cuando sea necesario. De este modo, el visualizador puede reutilizarse para cualquier gen presente en el archivo de anotación.
 
-Además, el proceso genera automáticamente un visualization_runlog.txt, donde quedan registrados los parámetros de visualización, el transcrito utilizado, la región representada y las figuras generadas, favoreciendo la trazabilidad del análisis. En el caso de splice_junctions, también se exporta una tabla con las junctions finalmente representadas en la figura, facilitando la revisión e interpretación posterior.
+El proceso genera automáticamente un visualization_runlog.txt, donde quedan registrados los parámetros de visualización, el transcrito utilizado, la región representada y las figuras generadas, favoreciendo la trazabilidad del análisis. En el caso de splice_junctions, también se exporta una tabla con las junctions finalmente representadas en la figura, facilitando la revisión e interpretación posterior.
+Además, durante el desarrollo del visualizador se realizó una refactorización del código con el objetivo de mejorar su mantenibilidad. Para ello se centralizaron las constantes de representación en un módulo `config.py` y se unificaron varias tareas repetidas mediante funciones auxiliares compartidas, reduciendo la duplicación de código y facilitando futuras ampliaciones del pipeline.
