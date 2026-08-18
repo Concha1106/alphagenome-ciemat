@@ -1,0 +1,55 @@
+Experiment exp03 — AlphaGenome Prediction Visualization
+============================================================
+
+Execution date: 2026-08-18 12:33:33.159731
+
+Input files
+--------------------
+prediction_pkl: results/2026-05-28-exp03-variant-pipeline/CL:0000182-ontology-2026-07-01/prediction.pkl
+input_runlog: results/2026-05-28-exp03-variant-pipeline/CL:0000182-ontology-2026-07-01/runlog.txt
+
+Gene annotation
+--------------------
+gene_name: SEC23B
+gene_id: ENSG00000101310
+transcript_id: ENST00000650089
+transcript_name: SEC23B-211
+transcript_biotype: protein_coding
+strand: +
+selection_method: MANE_Select
+n_exons: 20
+annotation_gtf: raw-data/Homo_sapiens.GRCh38.115.gtf
+gene_name_argument: SEC23B
+transcript_id_argument: None
+
+Visualization parameters
+--------------------
+output_dir: results/2026-05-28-exp03-variant-pipeline/CL:0000182-ontology-2026-07-01/figures
+title: SEC23B Knock-in CL:0000182
+strand: +
+region_start_1based: 18507973
+region_end_1based: 18525020
+region_source: manual_arguments
+variant_pos_1based: 18510827
+view_flank: None
+
+Splice junction selection parameters
+--------------------
+junction_min_positive_delta: 0.3
+junction_max_negative_delta: -0.6
+selected_junction_count: 4
+
+Selected splice junctions
+--------------------
+ junction_index chromosome  junction_start_1based  junction_end_1based strand  ref_value  alt_value  delta_alt_ref  abs_delta change_type
+            627      chr20               18511057             18512224      +   1.592924   0.145850      -1.447074   1.447074   decreased
+            965      chr20               18524670             18524934      +   1.707404   1.003196      -0.704208   0.704208   decreased
+            781      chr20               18512283             18515649      +   1.506306   0.814691      -0.691616   0.691616   decreased
+            876      chr20               18515737             18524432      +   1.432193   0.795848      -0.636345   0.636345   decreased
+
+Generated figures
+--------------------
+01_rna_seq.png
+02_splice_sites_plus.png
+03_splice_site_usage_plus.png
+04_splice_junctions_plus.png

@@ -1,87 +1,92 @@
-Experiment exp03 — General Variant Evaluation Pipeline
+# Experiment exp03 — General Variant Evaluation Pipeline
 
 ## Objetivo
 
-Desarrollar un pipeline general y automatizable para la evaluación exploratoria de variantes genéticas mediante AlphaGenome.
+Desarrollar un pipeline generalizable y reproducible para la evaluación funcional de variantes genómicas mediante AlphaGenome y aplicarlo al análisis de una estrategia de knock-in terapéutico en SEC23B.
 
-A diferencia del experimento exp02, centrado en la replicación de un caso concreto de exon skipping en DLG1, este experimento busca construir una arquitectura generalizada que permita analizar variantes novedosas sin asumir previamente el mecanismo biológico implicado.
+A diferencia de exp02, inicialmente centrado en la exploración y reproducción del caso de exon skipping en DLG1, exp03 consolida un flujo de trabajo reutilizable que integra la ejecución de AlphaGenome, el procesamiento y exportación de sus predicciones y su posterior visualización.
 
-De este modo, se pretende desarrollar un flujo de trabajo reproducible capaz de:
+## Estructura del pipeline
 
-- recibir variantes genómicas como entrada;
-- realizar un primer cribado global mediante score_variant();
-- priorizar señales biológicas potencialmente relevantes;
-- generar predicciones directas REF vs ALT mediante predict_variant();
-- exportar resultados estructurados para su posterior interpretación.
+El flujo de trabajo se divide en dos módulos principales:
 
-Para asegurar la trazabilidad y reproducibilidad el script se desarrollará siguiendo unos criterios similares a los utilizados en los experimentos previos:
-registro de parámetros usados, variante evaluada,outputs solicitados, archivos generados, etc. Esto quedará registrado en archivos runlog.txt de este proyecto, el manifes-data.tsv y Git.
+1. `run-variant-pipeline.py`: ejecución de AlphaGenome, procesamiento y exportación estructurada de las predicciones.
+2. `visualize-prediction.py`: generación de visualizaciones a partir de predicciones previamente almacenadas, sin realizar nuevas consultas a la API.
 
-## Estructura pipeline
+### Pipeline de análisis y exportación
 
-El pipeline se desarrollará en diferentes fases que modularán lo siguiente:
+El script `run-variant-pipeline.py` permite:
 
-1. Lectura de argumentos obligatorios y opcionales
-2. Validación de variantes
-3. Construcción de intervalos;
-4. Generación automática de directorios y runlogs
-5. Análisis mediante score_variant()
-6. Análisis mediante predict_variant()
-7. Exportación automática de tablas resumen
-8. Priorización automática de señales biológicas (mejora a desarrollar en futuro).
+- recibir y validar una variante genómica mediante argumentos de línea de comandos;
+- construir el objeto `Variant` y el intervalo de análisis;
+- ejecutar `score_variant()` para obtener puntuaciones resumidas del efecto de la variante;
+- ejecutar `predict_variant()` para obtener predicciones directas REF y ALT;
+- restringir el análisis a una ontología concreta y seleccionar los output types solicitados;
+- exportar las predicciones en tablas estructuradas;
+- generar tablas resumen para facilitar la priorización e interpretación de las señales;
+- serializar el objeto completo devuelto por `predict_variant()` en `prediction.pkl`;
+- registrar automáticamente los parámetros de ejecución y archivos generados en `runlog.txt`.
 
-### Inputs
-- position  
-- reference (REF)
-- alternate 
-- Argumentos opcionales previstos
-- interval size
+Entre las salidas adicionales generadas por el pipeline se incluyen resúmenes de las predicciones por track y tablas específicas para facilitar la interpretación de outputs relacionados con splicing.
 
-### Outputs previstos
+### Optimización de la exportación
 
-El pipeline generará:
+Para reducir el uso de memoria durante el procesamiento de predicciones con múltiples tracks, las salidas de tipo TrackData se exportan progresivamente por track en lugar de acumular todas las filas en memoria.
 
-- tablas completas de scores
-- tablas priorizadas
-- predicciones REF vs ALT
-
-### Estado
-
-Pipeline funcional.
-
-Actualmente el script permite:
-
-- recibir una variante mediante argumentos de línea de comandos
-- desarrollar un script independiente de visualización (`visualize-prediction.py`) basado en el objeto serializado `prediction.pkl`
-- generar automáticamente figuras para RNA-seq, splice_sites, splice_site_usage y splice_junctions
-- incorporar anotación automática mediante transcritos MANE Select obtenidos desde un archivo GTF compatible con GRCh38
-- permitir la visualización de cualquier gen presente en la anotación
-- generar automáticamente `visualization_runlog.txt` para registrar los parámetros y figuras generadas
-
-### Optimización de exportación predict_variant
-
-Se identificó un cuello de botella de memoria durante la exportación local de predicciones generadas por `predict_variant()`, especialmente al trabajar con ontologías con múltiples tracks y ventanas grandes.
-
-Para reducir el uso de RAM, la exportación de salidas tipo TrackData se modificó para escribir los resultados progresivamente por track, en lugar de acumular todas las filas en memoria antes de generar el archivo final.
-
-Además, se mejoró el manejo de ejecuciones parciales mediante `--output-types`, permitiendo solicitar únicamente modalidades concretas, como `CAGE` o `SPLICE_SITES`, sin que el exportador falle al encontrar outputs no solicitados.
-
-### Mejoras añadidas
-
-- calcular y exportar `score_variant_merged_splicing.tsv`, con una métrica integrada de splicing basada en `SPLICE_SITES`, `SPLICE_SITE_USAGE` y `SPLICE_JUNCTIONS`;
-- exportar `splice_sites` en formato wide para facilitar su visualización en Excel;
-- generar vistas locales alrededor de la variante para facilitar la interpretación regional;
-- generar `predict_variant_track_summary.tsv`, una tabla resumen por output type y track con máximos, medias y número de posiciones con delta relevante.
+El pipeline permite además seleccionar modalidades concretas mediante `--output-types`, evitando procesar outputs no solicitados.
 
 ## Visualización de predicciones
 
-Se desarrolló un módulo independiente de visualización (visualize-prediction.py) con el objetivo de separar el análisis computacional de la generación de figuras.
+El script `visualize-prediction.py` reutiliza el objeto `prediction.pkl` generado durante el análisis para producir figuras sin repetir llamadas a la API de AlphaGenome.
 
-Mientras que el pipeline principal (run-variant-pipeline.py) ejecuta score_variant() y predict_variant(), exporta tablas estructuradas y serializa el objeto completo de predicción (prediction.pkl), el script de visualización reutiliza dicho objeto para generar figuras sin realizar nuevas llamadas a la API de AlphaGenome. Esta estrategia mejora la reproducibilidad del análisis, reduce el consumo de recursos y facilita la iteración sobre las representaciones gráficas.
+El visualizador permite representar:
 
-Actualmente, el visualizador permite generar figuras para los principales outputs relacionados con splicing y expresión génica (RNA-seq, splice_sites, splice_site_usage y splice_junctions) a partir del objeto 'prediction.pkl', sin necesidad de repetir llamadas a la API de AlphaGenome.
+- RNA-seq;
+- splice sites;
+- splice site usage;
+- splice junctions.
 
-Como mejora respecto a versiones anteriores, la anotación génica deja de estar codificada específicamente para SEC23B y pasa a obtenerse automáticamente a partir de un archivo GTF compatible con GRCh38. El script selecciona por defecto el transcrito MANE Select, aunque permite indicar un transcrito concreto cuando sea necesario. De este modo, el visualizador puede reutilizarse para cualquier gen presente en el archivo de anotación.
+La anotación génica se obtiene automáticamente a partir de un archivo GTF compatible con GRCh38. Por defecto se selecciona el transcrito MANE Select del gen analizado, aunque puede indicarse un transcrito concreto.
 
-El proceso genera automáticamente un visualization_runlog.txt, donde quedan registrados los parámetros de visualización, el transcrito utilizado, la región representada y las figuras generadas, favoreciendo la trazabilidad del análisis. En el caso de splice_junctions, también se exporta una tabla con las junctions finalmente representadas en la figura, facilitando la revisión e interpretación posterior.
-Además, durante el desarrollo del visualizador se realizó una refactorización del código con el objetivo de mejorar su mantenibilidad. Para ello se centralizaron las constantes de representación en un módulo `config.py` y se unificaron varias tareas repetidas mediante funciones auxiliares compartidas, reduciendo la duplicación de código y facilitando futuras ampliaciones del pipeline.
+Las visualizaciones pueden restringirse a regiones genómicas específicas y mantienen una representación común de las predicciones REF, ALT y, cuando corresponde, de la diferencia ALT- REF.
+
+El proceso genera `visualization_runlog.txt`, que registra los parámetros de visualización, el transcrito utilizado, la región representada y las figuras generadas. Para splice junctions se exporta además una tabla con las junctions seleccionadas para su representación.
+
+Las constantes gráficas compartidas se encuentran centralizadas en `config.py`, mientras que distintas funciones auxiliares reutilizables permiten mantener un comportamiento homogéneo entre las representaciones.
+
+## Aplicación a SEC23B
+
+El pipeline se aplicó al análisis de un knock-in terapéutico en `SEC23B` diseñado para el tratamiento de la anemia diseritropoyética congénita tipo II (CDAII).
+La estrategia analizada consistió en una inserción mediante HDR en `chr20:18510827`, en la que la secuencia endógena fue reemplazada por un cassette terapéutico de 2.562 pb que incluye el cDNA funcional de `SEC23B` y una señal de poliadenilación bGH.
+
+Debido a que la inserción sustituye 3 pb de la secuencia de referencia, la secuencia endógena situada aguas abajo queda desplazada 2.559 pb en el alelo ALT respecto a REF. Esta diferencia de coordenadas se tuvo en cuenta durante la interpretación de las predicciones generadas por `predict_variant()`.
+
+El análisis se centró principalmente en outputs relacionados con expresión y splicing:
+
+- `RNA_SEQ`
+- `SPLICE_SITES`
+- `SPLICE_SITE_USAGE`
+- `SPLICE_JUNCTIONS`
+
+El análisis se realizó principalmente en las ontologías `CL:0001059` (common myeloid progenitor, CD34-positive) y `CL:0000837` (hematopoietic multipotent progenitor cell), correspondientes a progenitores hematopoyéticos relevantes para el contexto terapéutico estudiado.
+
+De forma complementaria, se evaluaron `CL:0000182` (hepatocyte) y `CL:0000100` (motor neuron) para explorar si el patrón funcional predicho se reproducía en otros contextos celulares. La selección de las ontologías se realizó a partir de los metadatos de tracks disponibles en AlphaGenome.
+
+## Scripts
+
+- `scripts/2026-05-28-exp03-variant-pipeline/run-variant-pipeline.py`
+- `scripts/2026-05-28-exp03-variant-pipeline/visualize-prediction.py`
+
+## Resultados y trazabilidad
+
+Los resultados de cada ejecución se almacenan en subdirectorios específicos dentro de:
+
+`results/2026-05-28-exp03-variant-pipeline/`
+
+Cada ejecución del pipeline genera su correspondiente `runlog.txt`, mientras que el módulo de visualización genera `visualization_runlog.txt`.
+
+Los datos externos utilizados en el proyecto se registran en `docs/manifest-data.tsv` y el entorno reproducible se encuentra definido en `environment/environment.yml`.
+
+## Estado
+
+Pipeline completado, validado mediante el caso DLG1 y aplicado al análisis del knock-in en SEC23B.

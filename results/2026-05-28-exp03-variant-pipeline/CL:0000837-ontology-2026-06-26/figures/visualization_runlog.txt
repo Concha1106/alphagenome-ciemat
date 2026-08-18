@@ -1,0 +1,57 @@
+Experiment exp03 — AlphaGenome Prediction Visualization
+============================================================
+
+Execution date: 2026-08-18 12:25:45.818102
+
+Input files
+--------------------
+prediction_pkl: results/2026-05-28-exp03-variant-pipeline/CL:0000837-ontology-2026-06-26/prediction.pkl
+input_runlog: results/2026-05-28-exp03-variant-pipeline/CL:0000837-ontology-2026-06-26/runlog.txt
+
+Gene annotation
+--------------------
+gene_name: SEC23B
+gene_id: ENSG00000101310
+transcript_id: ENST00000650089
+transcript_name: SEC23B-211
+transcript_biotype: protein_coding
+strand: +
+selection_method: MANE_Select
+n_exons: 20
+annotation_gtf: raw-data/Homo_sapiens.GRCh38.115.gtf
+gene_name_argument: SEC23B
+transcript_id_argument: None
+
+Visualization parameters
+--------------------
+output_dir: results/2026-05-28-exp03-variant-pipeline/CL:0000837-ontology-2026-06-26/figures
+title: SEC23B Knock-in CL:0000837
+strand: +
+region_start_1based: 18507973
+region_end_1based: 18525020
+region_source: manual_arguments
+variant_pos_1based: 18510827
+view_flank: None
+
+Splice junction selection parameters
+--------------------
+junction_min_positive_delta: 0.3
+junction_max_negative_delta: -0.6
+selected_junction_count: 6
+
+Selected splice junctions
+--------------------
+ junction_index chromosome  junction_start_1based  junction_end_1based strand  ref_value  alt_value  delta_alt_ref  abs_delta change_type
+            627      chr20               18511057             18512224      +   1.839217   0.234559      -1.604659   1.604659   decreased
+            965      chr20               18524670             18524934      +   2.748536   1.817032      -0.931504   0.931504   decreased
+            781      chr20               18512283             18515649      +   1.962970   1.180263      -0.782707   0.782707   decreased
+            876      chr20               18515737             18524432      +   2.041255   1.296551      -0.744705   0.744705   decreased
+            177      chr20               18507991             18510821      +   1.544087   0.834101      -0.709986   0.709986   decreased
+            119      chr20               18507973             18510821      +   1.555627   0.849416      -0.706210   0.706210   decreased
+
+Generated figures
+--------------------
+01_rna_seq.png
+02_splice_sites_plus.png
+03_splice_site_usage_plus.png
+04_splice_junctions_plus.png

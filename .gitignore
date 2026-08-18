@@ -20,9 +20,18 @@ venv/
 # Sistem
 .DS_Store
 
-# Results (datos generados) & intermediate data
+# Results (generated data) & intermediate data
 results/*
+!results/*/
+results/*/*
 !results/*/runlog.txt
+!results/*/*/
+results/*/*/*
+!results/*/*/runlog.txt
+!results/*/*/figures/
+results/*/*/figures/*
+!results/*/*/figures/visualization_runlog.txt
+
 interm-data/
 
 # Inputs

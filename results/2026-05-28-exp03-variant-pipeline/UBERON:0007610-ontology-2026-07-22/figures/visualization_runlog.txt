@@ -1,0 +1,54 @@
+Experiment exp03 — AlphaGenome Prediction Visualization
+============================================================
+
+Execution date: 2026-08-11 10:09:34.704793
+
+Input files
+--------------------
+prediction_pkl: results/UBERON:0007610-ontology-2026-07-22/prediction.pkl
+input_runlog: results/UBERON:0007610-ontology-2026-07-22/runlog.txt
+
+Gene annotation
+--------------------
+gene_name: DLG1
+gene_id: ENSG00000075711
+transcript_id: ENST00000667157
+transcript_name: DLG1-261
+transcript_biotype: protein_coding
+strand: -
+selection_method: MANE_Select
+n_exons: 25
+annotation_gtf: raw-data/Homo_sapiens.GRCh38.115.gtf
+gene_name_argument: DLG1
+transcript_id_argument: None
+
+Visualization parameters
+--------------------
+output_dir: results/UBERON:0007610-ontology-2026-07-22/figures
+title: DLG1 Exon Skipping UBERON:0007610
+strand: -
+region_start_1based: 197075000
+region_end_1based: 197087000
+region_source: manual_arguments
+variant_pos_1based: 197081044
+view_flank: None
+
+Splice junction selection parameters
+--------------------
+junction_min_positive_delta: 0.3
+junction_max_negative_delta: -0.54
+selected_junction_count: 3
+
+Selected splice junctions
+--------------------
+ junction_index chromosome  junction_start_1based  junction_end_1based strand  ref_value  alt_value  delta_alt_ref  abs_delta change_type
+            490       chr3              197081118            197085579      -   1.005565   0.000170      -1.005395   1.005395   decreased
+            358       chr3              197076686            197081050      -   0.543008   0.000202      -0.542806   0.542806   decreased
+            487       chr3              197076686            197085579      -   0.000717   0.316712       0.315995   0.315995   increased
+
+Generated figures
+--------------------
+01_rna_seq.png
+02_splice_sites_minus.png
+03_splice_site_usage_minus.png
+04_splice_junctions_minus.png

@@ -1,387 +1,137 @@
 ID de ejecución: 2026-04-10-exp02
-Fecha: última actualización  2026-04-24
+Experimento: exp02 — Exon Skipping (DLG1)
+Estado: completado
 
 # Objetivo
 
-Replicar el experimento descrito en el paper de AlphaGenome para la variante chr3:197081044 TACTC>T en DLG1, asociada a un evento de exon skipping en tejido Artery_Tibial (GTEx), y evaluar si las predicciones obtenidas reproducen el
-comportamiento descrito en la Figura 3b del artículo.
+Validar el flujo de análisis de AlphaGenome mediante la reproducción del caso de exon skipping en DLG1 descrito por Avsec et al. (2026), combinando el análisis mediante score_variant() con la comparación directa REF vs ALT mediante predict_variant().
 
-El trabajo se divide en dos fases principales:
+# Variante
 
-1. Análisis inicial mediante score_variant(), orientado a detectar señales globales de alteración del splicing.
+chromosome = chr3
+position = 197081044
+reference_bases = TACTC
+alternate_bases = T
 
-2. Comparación directa REF vs ALT mediante predict_variant(), orientada a validar estructuralmente el evento y preparar una futura visualización tipo Figura 3b.
+Genoma de referencia: GRCh38
+Gen: DLG1
+Strand: -
+Ontología principal: UBERON:0007610 (Artery Tibial)
+Transcrito MANE Select: ENST00000667157 (DLG1-261)
 
-# 1. ANÁLISIS INICIAL CON score_variant() 
+# Entorno
 
-## Objetivo:
-Calcular scores resumidos del efecto funcional de la variante sobre splicing y detectar señales compatibles con exon skipping.
+Conda environment: alphagenome
+Python: 3.13
+AlphaGenome: 0.6.1
 
-## Entradas:
-- docs/alphagenome.pdf
-  Rol: referencia científica principal
-  Fuente: artículo de Nature sobre AlphaGenome
+La definición reproducible del entorno se encuentra en:
+environment/environment.yml
 
-- alphagenome_key.py
-  Rol: creación del cliente AlphaGenome mediante API key
+# 1. Análisis mediante score_variant()
 
-- Variante de interés:
-  chromosome = chr3
-  position = 197081044
-  reference_bases = TACTC
-  alternate_bases = T
+Script:
+scripts/2026-04-10-exp02-exon-skipping/exp02-score_exon_skipping.py
 
-## Scripts:
-- scripts/2026-04-10-exp02-exon-skipping/exp02-score_exon_skipping.py
-- alphagenome_key.py
+Comando:
+PYTHONPATH=. python scripts/2026-04-10-exp02-exon-skipping/exp02-score_exon_skipping.py
 
+Scorers analizados:
+- SPLICE_SITE_USAGE
+- SPLICE_SITES
+- SPLICE_JUNCTIONS
 
-## Parámetros:
-- Scorers utilizados:
-  - SPLICE_SITE_USAGE
-  - SPLICE_SITES
-  - SPLICE_JUNCTIONS
-- Métrica derivada:
-  - COMBINED_SCORE
-- Timeout en dna_client.create(): 30 s
+Métrica integrada:
+- COMBINED_SCORE
 
-## Comandos ejecutados:
- - python -c "from alphagenome_key import get_dna_model; model = get_dna_model(); print(model)"
- - openssl s_client -connect gdmscience.googleapis.com:443 -brief
- - cat /etc/resolv.conf
- - PYTHONPATH=. python scripts/2026-04-10-exp02-exon-skipping/exp02-score_exon_skipping.py
- - Comando de medición:
-   /usr/bin/time -v env PYTHONPATH=. python scripts/2026-04-10-exp02-exon-skipping/exp02-score_exon_skipping.py
-  
-## Tiempo de ejecución:
- - Elapsed (wall clock) time: 0:08.540 
-## Uso de recursos:
- - Maximum resident set size: 174152 kbytes (~170 MB RAM)
+Resultados principales:
+- combined_score = 3.6115
+- splice site usage (Artery Tibial) = 0.9598
+- splice sites:
+  - donor_- = 0.9111
+  - acceptor_- = 0.7441
+- junction candidata = 197076685–197085579
+- longitud = 8894 bp
+- max_tibial_score = 6.4102
 
-## Recursos observados:
- - Sin consumo anómalo aparente de CPU o disco
- - La incidencia principal observada fue de conectividad/resolución DNS, no de rendimiento computacional
-
-## Resultados:
+Archivos principales:
 - results/2026-04-10-exp02-exon-skipping/dlg1_usage_tibial.tsv
 - results/2026-04-10-exp02-exon-skipping/dlg1_sites.tsv
 - results/2026-04-10-exp02-exon-skipping/dlg1_junctions_tibial.tsv
 - results/2026-04-10-exp02-exon-skipping/dlg1_summary.tsv
 
-## Interpretación:
-El valor obtenido para combined_score fue: 3.6115. Este valor sugiere un efecto fuerte de la variante sobre el splicing.
+# 2. Comparación REF vs ALT mediante predict_variant()
 
-Además, se observó una junction candidata recurrente: 197076685 - 197085579, con:
-- length = 8894 bp
-- max_tibial_score = 6.4102
+Script:
+scripts/2026-04-10-exp02-exon-skipping/exp02-ref_vs_alt_prediction.py
 
-La combinación de:
-- señal elevada en splice_site_usage
-- señal elevada en splice_sites
-- presencia de una junction larga compatible con skipping
-- contexto tisular consistente con Artery_Tibial
+Comando:
+PYTHONPATH=. python scripts/2026-04-10-exp02-exon-skipping/exp02-ref_vs_alt_prediction.py
 
-apoya la hipótesis de un evento de exon skipping en DLG1.
-
- 
-## Commit asociado: a5696a96fec02a244db2c2c4507b850b0ee51a80
-
-## 1.1  PRUEBAS EXPLORATORIAS DE VARIANTES
-
-## Objetivo:
-Evaluar si la respuesta del modelo depende de la posición exacta y del tipo de alteración de secuencia.
-
-## Ejecución: modificación manual del objeto Variant en el script y re-ejecución completa del script. Se evaluaron variantes exploratorias modificando la posición y/o la secuencia respecto a la variante del paper en DLG1.
-
-## Entradas:
- - Desplazamientos posicionales (-42 nt, +2 nt, +10 nt)
- - Cambios de secuencia (TACTC>ATGAG, TACTC>TA)
-
-## Resultados:
-0) Variante del paper (referencia)
- - Variante: chr3:197081044 TACTC>T
- - combined_score: 3.6115
- - usage: Artery_Tibial = 0.9598; Nerve_Tibial = 0.9441
- - sites: donor_- = 0.9111; acceptor_- = 0.7441
- - junction candidata: 197076685 - 197085579 (length = 8894; max_tibial_score = 6.4102)
- - Interpretación: presenta una señal fuerte en todos los parámetros de splicing y una junction larga compatible con exon skipping, en lína con lo descrito en el paper.
-
-1) Variante desplazada -42 nt
- - Variante: chr3:197081002 ATGTA>AT
- - combined_score: 0.3806
- - usage: bajo
- - sites: bajos
- - junction candidata: 197282845 - 197297185 (length = 14340; max_tibial_score = 0.4797)
- - Interpretación: no muestra una señal fuerte compatible con una alteración relevante del splicing. La presencia de junctions por sí sola no implica efecto funcional.
-
-2) Variante desplazada +2 nt
- - Variante: chr3:197081046 CTCAC>A
- - combined_score: 3.5308
- - usage: alto
- - sites: altos
- - junction candidata: 197076682 - 197085579 (length = 8897; max_tibial_score = 5.3242)
- - Interpretación: produce una perturbación fuerte compatible con alteración del splicing, lo que sugiere que el entorno inmediato de la variante del paper es especialmente sensible a cambios de secuencia.
-
-3) Variante desplazada +10 nt
- - Variante: chr3:197081054 TTTAT>T
- - combined_score: 0.3415
- - usage: bajo
- - sites: bajos
- - junction candidata: 197140264 - 197194424 (length = 54160; max_tibial_score = 0.3083)
- - Interpretación: al alejarse del entorno inmediato de la variante del paper, desaparece la señal compatible con una alteración importante del splicing.
-
-4) Sustitución completa del motivo local
- - Variante: chr3:197081044 TACTC>ATGAG
- - combined_score: 3.8236
- - junction candidata: 197076685 - 197085579 (length = 8894)
- - Interpretación: la alteración fuerte de la secuencia local, incluso sin deleción, mantiene una señal elevada, lo que sugiere que el efecto no depende exclusivamente de la eliminación de bases, sino de la modificación del contexto de secuencia enen esa región.
-
-5) Deleción parcial del motivo local
- - Variante: chr3:197081044 TACTC>TA
- - combined_score: 3.8319
- - usage: Artery_Tibial = 0.9607; Nerve_Tibial = 0.9451
- - sites: donor_- = 0.9947; acceptor_- = 0.9058
- - junction candidata: 197076685 - 197085579 (length = 8894; max_tibial_score = 6.4258)
-
-- Interpretación: una modificación diferente a la de referencia, pero simil (deleción) mantiene una señal fuerte y una junction candidata similar, apoyando que esta región es especialmente sensible a cambios de secuencia.
-
-
-## Interpretación global:
-La respuesta del modelo parece depender del contexto local de la secuencia y no de una mutación específica aislada. De este modo, la secuencia local en ese punto es funcionalmente importante para la regulación del splicing, y varias perturbaciones de esa secuencia pueden alterar de forma marcada la predicción del modelo.
-
-## 1.2  VALIDACIÓN ESTRUCTURAL PRELIMINAR MEDIANTE GTF 
-
-Objetivo:
-Contrastar la junction candidata detectada tras el análisis con score_variant() con la anotación exónica de DLG1 en Ensembl GRCh38 release 115.
-
-Esta validación se realizó como análisis preliminar después de observar un combined_score elevado y una junction larga candidata compatible con exon skipping.
-
-## Entrada:
- - raw-data/2026-04-10-exp02-exon-skipping/Homo_sapiens.GRCh38.115.gtf (Ensembl)
-Se generó el archivo intermedio interm-data/2026-04-10-exp02-exon-skipping/dlg1_exons.gtf a partir del GTF completo de Ensembl, filtrando únicamente los exones anotados para DLG1.
-
-Junction evaluada: 197076685 - 197085579
-Adaptación del gene_id: en AlphaGenome el identificador de DLG1 aparecía con versión: ENSG00000075711.21
-
-En el GTF de Ensembl el gene_id aparece separado en dos campos:
-- gene_id "ENSG00000075711"
-- gene_version "22"
-
-Por este motivo, para filtrar el GTF se utilizó el identificador sin versión:ENSG00000075711
-
-## Comandos:
- - Filtrado de exones DLG1:
-grep 'ENSG00000075711 'raw-data/2026-04-10-exp02-exon-skipping/Homo_sapiens.GRCh38.115.gtf | grep $'\texon\t' > interm-data/2026-04-10-exp02-exon-skipping/dlg1_exons.gtf
-
- - Identificación de exones en límites de la junction candidata:
-awk '$3=="exon" && $5==197076685 {print $4, $5}' interm-data/2026-04-10-exp02-exon-skipping/dlg1_exons.gtf | sort -u
-awk '$3=="exon" && $4==197085580 {print $4, $5}' interm-data/2026-04-10-exp02-exon-skipping/dlg1_exons.gtf | sort -u
-
- - Identificación de exones intermedios:
-awk '$3=="exon" && $4>197076685 && $5<197085579 {print $4, $5}' interm-data/2026-04-10-exp02-exon-skipping/dlg1_exons.gtf | sort -u
-Nota:
-La junction termina en 197085579, por lo que se consulta 197085580 para capturar el inicio del exón siguiente.
-
-## Resultados:
-
-### Exones en los límites de la junction candidata:
-- Exón izquierdo: 197076586 – 197076685
-- Exones derecho:
-  - 197085580 – 197085658
-  - 197085580 – 197085756
-
-### Exones intermedios identificados entre ambos límites:
-- 197078463 – 197078533
-- 197080478 – 197081117
-- 197080990 – 197081117
-- 197081051 – 197081117
-
-## Interpretación:
-La junction candidata (197076685 - 197085579) conecta el final de un exón con el inicio de otro exón no adyacente, omitiendo múltiples exones intermedios anotados en el GTF.
-
-Este patrón es consistente con un evento de exon skipping, ya que la unión se produce entre regiones exónicas separadas, excluyendo completamente los exones intermedios del transcrito. Esta fase todavía se considera una validación estructural preliminar, ya que aún había que realizar la comparación directa REF vs ALT mediante predict_variant().
-
-# 2.COMPARACIÓN DIRECTA REF VS ALT CON predict_variant() 
-
-## Objetivo: Generar predicciones REF vs ALT con AlphaGenome para la variante chr3:197081044 TACTC>T en DLG1, usando outputs relacionados con exon skipping: splice junctions, splice site usage, splice sites y RNA-seq.
-
-En lugar de revisar únicamente las tablas completas, se generan tablas resumen con los 10 eventos que más aumentan y los 10 que más disminuyen tras aplicar la variante.
-
-Esto permite identificar de forma más directa:
-
-- splice junctions ganadas o perdidas
-- splice sites debilitados o reforzados
-- cambios relevantes en splice site usage
-
-## Entradas:
-- Variante: chr3:197081044 TACTC>T
-- Contexto tisular: UBERON:0007610 / GTEx Artery_Tibial
-- Región recortada para futura visualización: chr3:197076044-197086544
-- Anotación GTF local: raw-data/2026-04-10-exp02-exon-skipping/Homo_sapiens.GRCh38.115.gtf
-
-## Scripts:
-- scripts/2026-04-10-exp02-exon-skipping/exp02-ref_vs_alt_prediction.py
-- alphagenome_key.py
-
-## Outputs solicitados:
+Outputs solicitados:
 - SPLICE_JUNCTIONS
 - SPLICE_SITE_USAGE
 - SPLICE_SITES
 - RNA_SEQ
 
-## Comando:
-PYTHONPATH=. python scripts/2026-04-10-exp02-exon-skipping/exp02-ref_vs_alt_prediction.py
+Contexto tisular:
+UBERON:0007610 (Artery Tibial)
 
-## Validación estructural refinada para la interpretación REF vs ALT:
+Región utilizada para el análisis local y la visualización:
+chr3:197075000–197087000
 
-Durante el desarrollo e interpretación del script predict_variant(), se refinó la validación estructural usando el transcrito de referencia de DLG1 marcado como MANE_Select.
+Anotación:
+raw-data/2026-04-10-exp02-exon-skipping/Homo_sapiens.GRCh38.115.gtf
 
-### Objetivo:
-Evitar la ambigüedad generada por las múltiples isoformas de DLG1 y disponer de un marco estructural concreto para interpretar las junctions REF vs ALT.
+Transcrito MANE Select:
+ENST00000667157 (DLG1-261), strand -
 
-### Comando para identificar el transcrito MANE_Select:
-```
-grep 'gene_name "DLG1"' raw-data/2026-04-10-exp02-exon-skipping/Homo_sapiens.GRCh38.115.gtf | \
-grep $'\ttranscript\t' | \
-grep 'MANE_Select'
-```
-### Resultado:
-- transcript_id: ENST00000667157
-- transcript_name: DLG1-261
-- strand: -
-- tags: MANE_Select, Ensembl_canonical
+Exones relevantes:
+- exon 18: 197076586–197076685
+- exon 17: 197081051–197081117
+- exon 16: 197085580–197085756
 
-### Extracción de exones del transcrito MANE_Select:
-```
-echo -e "chr\tstart\tend\tstrand\texon_number" > interm-data/2026-04-10-exp02-exon-skipping/dlg1_mane_select_exons.tsv
+Junctions principales:
+REF:
+- 197076685–197081050 (exon 18 → exon 17)
+- 197081117–197085579 (exon 17 → exon 16)
 
-grep 'transcript_id "ENST00000667157"' raw-data/2026-04-10-exp02-exon-skipping/Homo_sapiens.GRCh38.115.gtf | \
-grep $'\texon\t' | \
-awk '{
-    for(i=1; i<=NF; i++) {
-        if($i == "exon_number") {
-            exon = $(i+1)
-            gsub(/"/, "", exon)
-        }
-    }
-    print $1 "\t" $4 "\t" $5 "\t" $7 "\t" exon
-}' >> interm-data/2026-04-10-exp02-exon-skipping/dlg1_mane_select_exons.tsv
-```
+ALT:
+- 197076685–197085579 (exon 18 → exon 16)
 
-Exones relevantes alrededor de la variante:
-- exon 16: 197085580 - 197085756
-- exon 17: 197081051 - 197081117
-- exon 18: 197076586 - 197076685
+La predicción ALT conecta directamente los exones 18 y 16, omitiendo el exón 17.
 
-Relación con las junctions REF vs ALT:
-- REF: 197076685 - 197081050
-- REF: 197081117 - 197085579
-- ALT: 197076685 - 197085579
-
-Interpretación:
-Las junctions REF conectan los exones flanqueantes con el exon 17, mientras que la junction ALT conecta directamente el exon 18 con el exon 16, omitiendo el exon 17.
-
-Esta comparación estructural apoya la interpretación de que la variante induce un patrón compatible con exon skipping del exon 17.
-
-## Actualización de código:
-Se añadió al script el cálculo automático de:
-```
-df.sort_values("delta_alt_ref", ascending=False).head(10)
-df.sort_values("delta_alt_ref", ascending=True).head(10)
-```
-para los siguientes outputs:
-
-- splice_junctions
-- splice_site_usage
-- splice_sites
-
-## Resultados:
+Archivos principales:
 - results/2026-04-10-exp02-exon-skipping/dlg1_splice_junctions_ref_vs_alt.tsv
 - results/2026-04-10-exp02-exon-skipping/dlg1_splice_site_usage_ref_vs_alt.tsv
 - results/2026-04-10-exp02-exon-skipping/dlg1_splice_sites_ref_vs_alt.tsv
 - results/2026-04-10-exp02-exon-skipping/dlg1_rna_seq_ref_vs_alt.tsv
 
-### Nuevos resultados generados:
-- dlg1_splice_junctions_top10_increased_alt_vs_ref.tsv
-- dlg1_splice_junctions_top10_decreased_alt_vs_ref.tsv
-- dlg1_splice_site_usage_top10_increased_alt_vs_ref.tsv
-- dlg1_splice_site_usage_top10_decreased_alt_vs_ref.tsv
-- dlg1_splice_sites_top10_increased_alt_vs_ref.tsv
-- dlg1_splice_sites_top10_decreased_alt_vs_ref.tsv
+# 3. Visualización
 
-## Interpretación:
-Las salidas se filtran a hebra negativa (-), coherente con la anotación de DLG1.
-
-Las tablas generales permiten:
-- identificar junctions perdidas y ganadas
-- observar cambios en splice site usage
-- analizar aparición de junctions de novo
-- comparar cobertura RNA-seq entre REF y ALT
-
-Las tablas resumen incluidas en la actualización del script permiten  además, priorizar las señales más relevantes para validar el evento descrito en el paper.
-Especialmente en splice_junctions, la aparición entre los valores más aumentados de una junction larga que conecta directamente los exones flanqueantes (197076685-197085579) refuerza la hipótesis de exon skipping del exon 17.
-
-Este enfoque mejora la trazabilidad biológica y facilita la justificación de la replicación incluso antes de generar una visualización formal tipo Figura 3b.
-
-# 3. SCRIPT PARA REPLICAR FIGURA 3b.
-
-Inicio del script plot-fig3b-junctions.py para representación visual de las junctions principales implicadas en el posible exon skipping del exón 17. Primera versión centrada únicamente en splice junctions, sin incluir aún los parámetros de splice site/usage ni RNA-seq.
-
-## 3.1 EXTENSIÓN DE LA VISUALIZACIÓN DE LA FIGURA 3b
-Ampliar la aproximación visual a la Figura 3b del artículo de AlphaGenome mediante scripts independientes para representar los principales outputs obtenidos con predict_variant():
-
-- splice junctions
-- RNA-seq
-- splice sites
-- splice site usage
-
-Además, se genera una primera figura integrada que combina los cuatro niveles de información en una única visualización.
-
-## Scripts:
+Scripts:
 - scripts/2026-04-10-exp02-exon-skipping/plot-fig3b-junctions.py
-  Script actualizado. Representa las junctions principales REF y ALT mediante arcos.
-
 - scripts/2026-04-10-exp02-exon-skipping/plot-fig3b-rna-seq.py
-  Script nuevo. Representa la señal RNA-seq REF vs ALT tras suavizado con rolling mean.
-
 - scripts/2026-04-10-exp02-exon-skipping/plot-fig3b-splice-sites-and-usage.py
-  Script nuevo. Representa splice sites y splice site usage REF vs ALT.
 
-- scripts/2026-04-10-exp02-exon-skipping/plot-fig3b-complete.py
-  Script nuevo. Integra splice junctions, splice sites, splice site usage y RNA-seq en una única figura.
+Las representaciones finales muestran:
+- pérdida de las junctions REF 18→17 y 17→16;
+- aparición de la junction ALT 18→16;
+- reducción de la señal RNA-seq correspondiente al exón 17;
+- cambios concordantes en splice sites y splice site usage.
 
-## Entradas:
-- results/2026-04-10-exp02-exon-skipping/dlg1_splice_junctions_ref_vs_alt.tsv
-- results/2026-04-10-exp02-exon-skipping/dlg1_splice_sites_ref_vs_alt.tsv
-- results/2026-04-10-exp02-exon-skipping/dlg1_splice_site_usage_ref_vs_alt.tsv
-- results/2026-04-10-exp02-exon-skipping/dlg1_rna_seq_ref_vs_alt.tsv
+La combinación de estos outputs reproduce un patrón compatible con exon skipping del exón 17 descrito para la variante de DLG1.
 
-## Outputs generados:
-- results/2026-04-10-exp02-exon-skipping/dlg1_fig3b_arcs_only.png
-- results/2026-04-10-exp02-exon-skipping/dlg1_fig3b_rnaseq_only.png
-- results/2026-04-10-exp02-exon-skipping/dlg1_fig3b_sites_usage.png
-- results/2026-04-10-exp02-exon-skipping/dlg1_fig3b_complete.png
+# Trazabilidad
 
-## Interpretación:
-La estrategia de visualización se planteó de forma modular, generando primero figuras independientes para cada tipo de output y posteriormente una figura integrada.
+Datos externos:
+docs/manifest-data.tsv
 
-El panel de splice junctions permite visualizar las dos junctions REF que conectan con el exón 17 y la junction ALT que conecta directamente los exones flanqueantes, compatible con exon skipping.
+Entorno:
+environment/environment.yml
 
-Los paneles de splice sites, splice site usage y RNA-seq permiten comparar visualmente las señales REF y ALT alrededor de la posición de la variante.
+Resultados:
+results/2026-04-10-exp02-exon-skipping/
 
-La figura integrada constituye una primera aproximación visual a la reconstrucción de la Figura 3b del artículo, aunque todavía puede refinarse en aspectos estéticos y de interpretación.
-# Entorno:
- - Python 3.13
- - Conda environment: alphagenome
- - AlphaGenome 0.6.1
- - Ubuntu en VirtualBox
-
-# OBSERVACIONES GENERALES:
-- Inicialmente, la creación del cliente AlphaGenome falló con grpc.FutureTimeoutError
-- La causa se aisló como un problema de resolución DNS en la máquina virtual Ubuntu
-- Evidencia adicional: el comando openssl s_client -connect gdmscience.googleapis.com:443 -brief devolvió previamente “Temporary failure in name resolution”
-- Tras corregir la configuración DNS en /etc/resolv.conf, la conexión se restableció correctamente
-- Verificación final: python -c "from alphagenome_key import get_dna_model; model = get_dna_model(); print(model)" devolvió correctamente un objeto DnaClient
-- Consumo de memoria moderado, adecuado para este tipo de análisis.
-- La aparición recurrente de la junction 197076685 - 197085579 en múltiples variantes de alto impacto sugiere un patrón consistente de splicing alternativo.
-- La validación mediante GTF confirma que dicha junction conecta exones no consecutivos, apoyando fuertemente la hipótesis de exon skipping
+Estado final:
+Experimento completado y utilizado como caso de validación del flujo de análisis.

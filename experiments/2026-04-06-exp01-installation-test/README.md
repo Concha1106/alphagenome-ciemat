@@ -2,32 +2,33 @@
 
 ## Objetivo
 
-Verificar la correcta instalación y funcionamiento básico de AlphaGenome.
+Verificar la correcta instalación y el funcionamiento básico de AlphaGenome, así como establecer la estructura inicial para la organización reproducible del proyecto.
 
 ## Datos de entrada
 
-- GTF de Ensembl  
-  - Fuente: Ensembl  
-  - Archivo: Homo_sapiens.GRCh38.115.abinitio.gtf.gz
+- GTF de Ensembl
+  - Fuente: Ensembl
+  - Archivo: `Homo_sapiens.GRCh38.115.abinitio.gtf.gz`
 
-- GTF simulado  
-  - Fuente: archivo generado para pruebas  
-  - Archivo: mini_clean2.gtf
+- GTF simulado
+  - Fuente: archivo generado para pruebas
+  - Archivo: `mini_clean2.gtf`
+
+Los datos de entrada se encuentran en `raw-data/2026-04-06-exp01-installation-test/`.
 
 ## Scripts utilizados
 
-- scripts/process_gtf_test.py  
-- scripts/process_gtf.py  
+- `scripts/2026-04-06-exp01-installation-test/process_gtf_test.py`
+- `scripts/2026-04-06-exp01-installation-test/process_gtf.py`
 
 ## Resultados
 
-- Ejecución correcta de test de instalación: impresión en pantalla
-- Generación de archivo de salida: results/2026-04-06-exp01-instalation-test/mini_output.feather
+- Ejecución correcta de las pruebas iniciales de procesamiento.
+- Generación del archivo `mini_output.feather`.
 
-## Archivos asociados
+## Trazabilidad
 
-- runlog.txt → registro reproducible de ejecución
-- manifest.txt → inventario de archivos utilizados
+Los datos externos utilizados en el proyecto se registran en `docs/manifest-data.tsv`.
 
 ## Estado
 
