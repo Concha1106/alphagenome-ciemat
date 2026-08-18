@@ -37,9 +37,6 @@ interm-data/
 # Inputs
 raw-data/**/*.gtf
 
-# Scripts
-alphagenome_key.py
-
 # Docs
 docs/evidencia-kanban.txt
 docs/alphagenome.pdf
