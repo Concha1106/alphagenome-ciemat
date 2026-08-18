@@ -22,6 +22,58 @@ TITLE = "DLG1 | Artery tibial\nPredicted splice junctions"
 
 VARIANT_POS = 197081044
 
+REGION_START = 197076044
+REGION_END = 197086544
+
+EXON_COLOR = "#1f77b4"
+INTRON_COLOR = "#555555"
+
+DLG1_EXONS = [
+    {"name": "E16", "start": 197085580, "end": 197085756},
+    {"name": "E17", "start": 197081051, "end": 197081117},
+    {"name": "E18", "start": 197076586, "end": 197076685},
+]
+
+def plot_dlg1_annotation(ax):
+    ax.set_xlim(REGION_END, REGION_START)
+    ax.set_ylim(0, 1)
+    ax.set_yticks([])
+    ax.set_xticks([])
+    ax.set_ylabel("DLG1", rotation=0, ha="right", va="center")
+
+    ax.hlines(
+        y=0.5,
+        xmin=min(exon["start"] for exon in DLG1_EXONS),
+        xmax=max(exon["end"] for exon in DLG1_EXONS),
+        color=INTRON_COLOR,
+        linewidth=1.2,
+    )
+
+    for exon in DLG1_EXONS:
+        width = exon["end"] - exon["start"] + 1
+
+        ax.broken_barh(
+            [(exon["start"], width)],
+            (0.42, 0.22),
+            facecolors=EXON_COLOR,
+            edgecolors=EXON_COLOR,
+        )
+
+        ax.text(
+            exon["start"] + width / 2,
+            0.72,
+            exon["name"],
+            ha="center",
+            va="bottom",
+            fontsize=8,
+            fontweight="bold",
+        )
+
+    for spine in ax.spines.values():
+        spine.set_visible(False)
+
+    ax.set_xlabel("Genomic position, chr3:197086544-197076044 (GRCh38)")
+
 # 1) Paths
 
 project_root = Path("~/proyectos_UAX/alphagenome-ciemat").expanduser()
@@ -57,7 +109,13 @@ plot_junc = junctions_of_interest.merge(
 
 # 5) Draw only arcs
 
-fig, ax = plt.subplots(figsize=(10, 3.8))
+fig, (ax, ax_annot) = plt.subplots(
+    nrows=2,
+    ncols=1,
+    figsize=(10, 4.8),
+    sharex=True,
+    gridspec_kw={"height_ratios": [3.8, 0.7]},
+)
 
 
 panel_y = {
@@ -105,7 +163,7 @@ ax.axvline(
 )
 
 ax.text(
-    VARIANT_POS + 140,
+    VARIANT_POS - 350,
     1.92,
     "4 bp deletion\n197081044",
     fontsize=8,
@@ -124,10 +182,10 @@ ax.set_title(
     fontweight="bold",
 )
 
-ax.set_xlim(197076044, 197086544)
+ax.set_xlim(REGION_END, REGION_START)
 ax.ticklabel_format(style="plain", axis="x")
 ax.get_xaxis().get_major_formatter().set_useOffset(False)
-ax.set_xlabel("Genomic position (GRCh38)")
+ax.set_xlabel("")
 ax.set_ylim(0.2, 2.25)
 ax.set_yticks([])
 
@@ -145,6 +203,10 @@ ax.legend(
 
 ax.spines["top"].set_visible(False)
 ax.spines["right"].set_visible(False)
+
+plot_dlg1_annotation(ax_annot)
+plt.tight_layout()
+
 
 plt.savefig(
     out_png,

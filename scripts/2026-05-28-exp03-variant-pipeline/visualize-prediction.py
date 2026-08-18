@@ -29,8 +29,18 @@ import pandas as pd
 from datetime import datetime
 
 import matplotlib.pyplot as plt
-from matplotlib.patches import Arc
+from matplotlib.patches import Arc, Patch
 from matplotlib.lines import Line2D
+from matplotlib.ticker import FuncFormatter
+
+plt.rcParams.update({
+    "font.size": 12,
+    "axes.titlesize": 14,
+    "axes.labelsize": 12,
+    "legend.fontsize": 11,
+    "xtick.labelsize": 11,
+    "ytick.labelsize": 11,
+})
 
 from config import (
     REF_COLOR,
@@ -44,6 +54,9 @@ from config import (
     SPLICE_SITES_LABEL,
     SPLICE_SITE_USAGE_LABEL,
     SPLICE_JUNCTIONS_LABEL,
+    INSERTED_REGION_COLOR,
+    INSERTED_REGION_ALPHA,
+    INSERTED_REGION_LABEL,
     FIGURE_DPI,
 )
 
@@ -146,6 +159,15 @@ def parse_arguments():
         type=int,
         default=None,
         help="Optional variant position, 1-based. If omitted, read from runlog."
+    )
+
+    parser.add_argument(
+        "--inserted-length",
+        type=int,
+        default=None,
+        help= ("Optional length in bp of an inserted sequence starting at variant_pos. "
+        "If provided, the inserted ALT region is shaded in the plots."
+        )
     )
 
     parser.add_argument(
@@ -760,7 +782,10 @@ def build_exon_intron_annotation(selected_exons):
     Build exon/intron annotation from one selected transcript.
 
     Exons come from the GTF. Introns are inferred as the regions between
-    consecutive exons.
+    consecutive exons in genomic coordinate order.
+
+    Intron labels are derived from the biological exon numbers flanking
+    each intron, rather than from the dataframe row index.
     """
 
     selected_exons = selected_exons.sort_values(
@@ -784,8 +809,14 @@ def build_exon_intron_annotation(selected_exons):
             intron_end = int(next_exon["start"]) - 1
 
             if intron_start <= intron_end:
+                current_exon_number = str(exon["name"]).replace("exon ", "")
+                next_exon_number = str(next_exon["name"]).replace("exon ", "")
+
                 rows.append({
-                    "name": f"intron {i + 1}-{i + 2}",
+                    "name": (
+                        f"intron "
+                        f"{current_exon_number}-{next_exon_number}"
+                    ),
                     "start": intron_start,
                     "end": intron_end,
                     "type": "intron",
@@ -954,13 +985,65 @@ def plot_variant_marker(
         ax.text(
             variant_pos - x_offset,
             y_pos,
-            f"{label}\n({variant_pos:,})",
+            f"{label}\n({variant_pos:,})".replace(",", "."),
             color=VARIANT_COLOR,
             ha="right",
             va="top",
             fontweight="bold",
-            fontsize=9,
+            fontsize=11,
         )
+        
+def format_genomic_xaxis(ax):
+    """Display full genomic coordinates on the x-axis."""
+    ax.xaxis.set_major_formatter(
+        FuncFormatter(lambda x, pos: f"{int(x):,}".replace(",", "."))
+    )
+    ax.get_xaxis().get_offset_text().set_visible(False)
+
+def shade_inserted_region(
+    ax,
+    variant_pos,
+    inserted_length,
+):
+    """Shade an inserted ALT sequence starting at variant_pos."""
+
+    if variant_pos is None or inserted_length is None:
+        return
+
+    inserted_end = variant_pos + inserted_length - 1
+
+    ax.axvspan(
+        variant_pos,
+        inserted_end,
+        color=INSERTED_REGION_COLOR,
+        alpha=INSERTED_REGION_ALPHA,
+        zorder=0,
+    )
+
+def inserted_region_legend_handle():
+    """Return legend handle for the inserted ALT region."""
+    return Patch(
+        facecolor=INSERTED_REGION_COLOR,
+        edgecolor=INSERTED_REGION_COLOR,
+        alpha=0.5,
+        label=INSERTED_REGION_LABEL,
+    )
+
+def italicize_gene_in_text(text, transcript_info):
+    """Italicize the gene symbol in a plot text using GTF annotation."""
+    if transcript_info is None:
+        return text
+
+    gene_name = transcript_info.get("gene_name")
+
+    if not gene_name:
+        return text
+
+    return text.replace(
+        gene_name,
+        rf"$\mathit{{{gene_name}}}$"
+    )    
+        
 def save_figure(fig, output_path, figure_label):
     """
     Save a matplotlib figure using the shared export configuration.
@@ -1009,7 +1092,7 @@ def plot_junction_arc(
             label_text,
             ha="center",
             va="bottom",
-            fontsize=8,
+            fontsize=10,
             color=color,
             fontweight="bold",
         )
@@ -1039,8 +1122,10 @@ def plot_mane_annotation_track(
         gene_name = transcript_info.get("gene_name", "Gene")
         selection_method = transcript_info.get("selection_method", "selected_transcript")
         selection_label = selection_method.replace("_", " ")
+        
+        formatted_gene_name = rf"$\mathit{{{gene_name}}}$"
 
-        ax.set_title(f"{gene_name} {selection_label} annotation", fontsize=11,)
+        ax.set_title(f"{formatted_gene_name} {selection_label} annotation", fontsize=11,)
     else:
         ax.set_title("Gene annotation", fontsize=11,)
 
@@ -1055,7 +1140,7 @@ def plot_mane_annotation_track(
                 transform=ax.transAxes,
                 ha="right",
                 va="bottom",
-                fontsize=8,
+                fontsize=10,
                 color="black",
             )
 
@@ -1067,7 +1152,7 @@ def plot_mane_annotation_track(
                 transform=ax.transAxes,
                 ha="right",
                 va="bottom",
-                fontsize=8,
+                fontsize=10,
                 color="black",
             )
 
@@ -1100,7 +1185,7 @@ def plot_mane_annotation_track(
                 row["name"].replace("exon ", "E"),
                 ha="center",
                 va="bottom",
-                fontsize=8,
+                fontsize=10,
                 color="black",
             )
 
@@ -1119,7 +1204,7 @@ def plot_mane_annotation_track(
                 row["name"].replace("intron ", "I"),
                 ha="center",
                 va="bottom",
-                fontsize=7,
+                fontsize=9,
                 color=INTRON_COLOR,
             )
 
@@ -1142,6 +1227,7 @@ def plot_rna_seq_ref_alt_and_delta(
     variant_pos,
     output_dir,
     title,
+    inserted_length=None,
     annotation_df=None,
     transcript_info=None
 ):
@@ -1187,18 +1273,26 @@ def plot_rna_seq_ref_alt_and_delta(
         )
         ax_signal, ax_delta = axes
         ax_annot = None
-        
+  
+    formatted_title = italicize_gene_in_text(title, transcript_info)
+    
     fig.suptitle(
-        f"{title} — {RNA_SEQ_LABEL}: REF vs ALT",
+        f"{formatted_title} — {RNA_SEQ_LABEL}: REF vs ALT",
         fontsize=14,
         y=0.98,
     )
 
     ax_signal.plot(df["genomic_position_1based"], df["ref_value"], label="REF", color=REF_COLOR)
     ax_signal.plot(df["genomic_position_1based"], df["alt_value"], label="ALT", color=ALT_COLOR)
-    ax_signal.set_ylabel("Predicted RNA-seq signal")
+    ax_signal.set_ylabel("RNA_SEQ", labelpad=12)
     ax_signal.set_title("")
-    ax_signal.legend()
+    handles, labels = ax_signal.get_legend_handles_labels()
+
+    if inserted_length is not None:
+        handles.append(inserted_region_legend_handle())
+        labels.append(INSERTED_REGION_LABEL)
+
+    ax_signal.legend(handles=handles, labels=labels, loc="upper center", bbox_to_anchor=(0.80, 0.98))
 
     ax_delta.axhline(0, linestyle="--", linewidth=1)
     ax_delta.fill_between(df["genomic_position_1based"], 0, df["delta_alt_ref"], color=DELTA_COLOR,
@@ -1206,11 +1300,23 @@ def plot_rna_seq_ref_alt_and_delta(
 
     ax_delta.plot(df["genomic_position_1based"], df["delta_alt_ref"], color=DELTA_COLOR, linewidth=1, label="ALT - REF",)
 
-    ax_delta.legend(loc="upper right")
+    ax_delta.legend(loc="upper center", bbox_to_anchor=(0.80, 0.98))
 
     if variant_pos is not None:
         plot_variant_marker(ax_signal, variant_pos)
         plot_variant_marker(ax_delta, variant_pos, label=None)
+        
+    shade_inserted_region(
+        ax_signal,
+        variant_pos=variant_pos,
+        inserted_length=inserted_length,
+    )
+
+    shade_inserted_region(
+        ax_delta,
+        variant_pos=variant_pos,
+        inserted_length=inserted_length,
+    )
 
     if ax_annot is not None:
         plot_mane_annotation_track(
@@ -1224,6 +1330,10 @@ def plot_rna_seq_ref_alt_and_delta(
 
     else:
         ax_delta.set_xlabel("Genomic position (1-based)")
+        
+    format_genomic_xaxis(ax_delta)
+    
+    ax_delta.set_xlabel("Genomic position (GRCh38)")
 
     output_path = output_dir / "01_rna_seq.png"
 
@@ -1239,6 +1349,7 @@ def plot_splice_sites(
     output_dir,
     title,
     strand,
+    inserted_length=None,
     annotation_df=None,
     transcript_info=None
 ):
@@ -1284,7 +1395,7 @@ def plot_splice_sites(
             sharex=True,
             gridspec_kw={"height_ratios": [0.6, 1.5, 1.5, 1]}
         )
-        ax_annot, ax_donor, ax_acceptor, ax_delta = axes
+        ax_annot, ax_acceptor, ax_donor, ax_delta = axes
     else:
         fig, axes = plt.subplots(
             nrows=3,
@@ -1293,29 +1404,53 @@ def plot_splice_sites(
             sharex=True,
             gridspec_kw={"height_ratios": [1.5, 1.5, 1]}
         )
-        ax_donor, ax_acceptor, ax_delta = axes
+        ax_acceptor, ax_donor, ax_delta = axes
         ax_annot = None
+
+    strand_symbol = "+" if strand == "+" else "−"
     
+    formatted_title = italicize_gene_in_text(title, transcript_info)
     fig.suptitle(
-        f"{title} — {SPLICE_SITES_LABEL}: REF vs ALT",
+        f"{formatted_title} — {SPLICE_SITES_LABEL}: REF vs ALT | strand {strand_symbol}",
         fontsize=14,
         y=0.98,
-    )
+        )
 
     x_donor = donor_df["genomic_position_1based"]
     x_acceptor = acceptor_df["genomic_position_1based"]
 
-    ax_donor.plot(x_donor, donor_df["ref_value"], label="REF donor", color=REF_COLOR, linestyle="-", linewidth=1.2,)
-    ax_donor.plot(x_donor, donor_df["alt_value"], label="ALT donor", color=ALT_COLOR, linestyle="--", linewidth=1.2,)
-    ax_donor.set_ylabel("Predicted donor probability")
+    ax_donor.plot(x_donor, donor_df["ref_value"], label=f"REF donor ({strand_symbol})", color=REF_COLOR, linestyle="-", linewidth=1.2,)
+    ax_donor.plot(x_donor, donor_df["alt_value"], label=f"ALT donor ({strand_symbol})", color=ALT_COLOR, linestyle="--", linewidth=1.2,)
+    ax_donor.set_ylabel("SPLICE_SITES\n(donor)", labelpad=12)
     ax_donor.set_title("")
-    ax_donor.legend(loc="lower right", bbox_to_anchor=(0.90,0.70),)
-    
-    ax_acceptor.plot(x_acceptor, acceptor_df["ref_value"], label="REF acceptor", color=REF_COLOR, linestyle="-", linewidth=1.2,)
-    ax_acceptor.plot(x_acceptor, acceptor_df["alt_value"], label="ALT acceptor", color=ALT_COLOR, linestyle="--", linewidth=1.2,)
-    ax_acceptor.set_ylabel("Predicted acceptor probability")
-    ax_acceptor.legend(loc="lower right", bbox_to_anchor=(0.90, 0.70),)
+    donor_handles, donor_labels = ax_donor.get_legend_handles_labels()
 
+    if inserted_length is not None:
+        donor_handles.append(inserted_region_legend_handle())
+        donor_labels.append(INSERTED_REGION_LABEL)
+
+    ax_donor.legend(
+        handles=donor_handles,
+        labels=donor_labels,
+        loc="upper center",
+        bbox_to_anchor=(0.92, 0.98)
+    )
+    
+    ax_acceptor.plot(x_acceptor, acceptor_df["ref_value"], label=f"REF acceptor ({strand_symbol})", color=REF_COLOR, linestyle="-", linewidth=1.2,)
+    ax_acceptor.plot(x_acceptor, acceptor_df["alt_value"], label=f"ALT acceptor ({strand_symbol})", color=ALT_COLOR, linestyle="--", linewidth=1.2,)
+    ax_acceptor.set_ylabel("SPLICE_SITES\n(acceptor)", labelpad=12)
+    acceptor_handles, acceptor_labels = ax_acceptor.get_legend_handles_labels()
+
+    if inserted_length is not None:
+        acceptor_handles.append(inserted_region_legend_handle())
+        acceptor_labels.append(INSERTED_REGION_LABEL)
+
+    ax_acceptor.legend(
+        handles=acceptor_handles,
+        labels=acceptor_labels,
+        loc="upper center",
+        bbox_to_anchor=(0.92, 0.98)
+    )
 
     ax_delta.axhline(0, linestyle="--", linewidth=1)
 
@@ -1324,7 +1459,7 @@ def plot_splice_sites(
         donor_df["delta_alt_ref"],
         color=DELTA_COLOR,
         linewidth=1,
-        label="ALT - REF donor",
+        label=f"ALT - REF donor ({strand_symbol})",
     )
 
     ax_delta.plot(
@@ -1333,16 +1468,34 @@ def plot_splice_sites(
         color=DELTA_SECOND_COLOR,
         linewidth=1,
         linestyle="--",
-        label="ALT - REF acceptor",
+        label=f"ALT - REF acceptor ({strand_symbol})",
     )
 
     ax_delta.set_ylabel("ALT - REF")
-    ax_delta.legend(loc="upper right")
+    ax_delta.legend(loc="upper center", bbox_to_anchor=(0.92, 0.98))
 
     if variant_pos is not None:
-        plot_variant_marker(ax_donor, variant_pos)
-        plot_variant_marker(ax_acceptor, variant_pos, label=None)
+        plot_variant_marker(ax_acceptor, variant_pos)
+        plot_variant_marker(ax_donor, variant_pos, label=None)
         plot_variant_marker(ax_delta, variant_pos, label=None)
+
+    shade_inserted_region(
+        ax_acceptor,
+        variant_pos=variant_pos,
+        inserted_length=inserted_length,
+    )
+
+    shade_inserted_region(
+        ax_donor,
+        variant_pos=variant_pos,
+        inserted_length=inserted_length,
+    )
+
+    shade_inserted_region(
+        ax_delta,
+        variant_pos=variant_pos,
+        inserted_length=inserted_length,
+    )
 
     if ax_annot is not None:
         plot_mane_annotation_track(
@@ -1355,7 +1508,11 @@ def plot_splice_sites(
         )
     else:
         ax_delta.set_xlabel("Genomic position (1-based)") 
-
+        
+    format_genomic_xaxis(ax_delta)
+    
+    ax_delta.set_xlabel("Genomic position (GRCh38)")
+        
     strand_suffix = "plus" if strand == "+" else "minus"
     output_path = output_dir / f"02_splice_sites_{strand_suffix}.png"
 
@@ -1372,6 +1529,7 @@ def plot_splice_site_usage(
     output_dir,
     title,
     strand,
+    inserted_length=None,
     annotation_df=None,
     transcript_info=None
 ):
@@ -1420,9 +1578,12 @@ def plot_splice_site_usage(
         )
         ax_signal, ax_delta = axes
         ax_annot = None
-
+        
+    strand_symbol = "+" if strand == "+" else "−"   
+    
+    formatted_title = italicize_gene_in_text(title, transcript_info)
     fig.suptitle(
-        f"{title} — {SPLICE_SITE_USAGE_LABEL}: REF vs ALT",
+        f"{formatted_title} — {SPLICE_SITE_USAGE_LABEL}: REF vs ALT | strand {strand_symbol}",
         fontsize=14,
         y=0.98,
         )
@@ -1430,7 +1591,7 @@ def plot_splice_site_usage(
     ax_signal.plot(
         df["genomic_position_1based"],
         df["ref_value"],
-        label="REF",
+        label=f"REF ({strand_symbol})",
         color=REF_COLOR,
         linewidth=1.2,
     )
@@ -1438,15 +1599,26 @@ def plot_splice_site_usage(
     ax_signal.plot(
         df["genomic_position_1based"],
         df["alt_value"],
-        label="ALT",
+        label=f"ALT ({strand_symbol})",
         color=ALT_COLOR,
         linestyle="--",
         linewidth=1.2,
     )
 
-    ax_signal.set_ylabel("Predicted site usage")
+    ax_signal.set_ylabel("SPLICE_SITE_USAGE", labelpad=12)
     ax_signal.set_title("")
-    ax_signal.legend(loc="upper right", bbox_to_anchor=(0.90, 1.00))
+    handles, labels = ax_signal.get_legend_handles_labels()
+
+    if inserted_length is not None:
+        handles.append(inserted_region_legend_handle())
+        labels.append(INSERTED_REGION_LABEL)
+
+    ax_signal.legend(
+        handles=handles,
+        labels=labels,
+        loc="upper center",
+        bbox_to_anchor=(0.92, 0.98)
+    )
 
     ax_delta.axhline(0, linestyle="--", linewidth=1)
 
@@ -1463,15 +1635,27 @@ def plot_splice_site_usage(
         df["delta_alt_ref"],
         color=DELTA_COLOR,
         linewidth=1,
-        label="ALT - REF",
+        label=f"ALT - REF ({strand_symbol})",
     )
 
     ax_delta.set_ylabel("ALT - REF")
-    ax_delta.legend(loc="upper right")
+    ax_delta.legend(loc="upper center", bbox_to_anchor=(0.92, 0.98))
 
     if variant_pos is not None:
         plot_variant_marker(ax_signal, variant_pos)
         plot_variant_marker(ax_delta, variant_pos, label=None)
+        
+    shade_inserted_region(
+        ax_signal,
+        variant_pos=variant_pos,
+        inserted_length=inserted_length,
+    )   
+
+    shade_inserted_region(
+        ax_delta,
+        variant_pos=variant_pos,
+        inserted_length=inserted_length,
+    )    
 
     if ax_annot is not None:
         plot_mane_annotation_track(
@@ -1484,7 +1668,11 @@ def plot_splice_site_usage(
         )
     else:
         ax_delta.set_xlabel("Genomic position (1-based)")
+        
+    format_genomic_xaxis(ax_delta)
 
+    ax_delta.set_xlabel("Genomic position (GRCh38)")    
+        
     strand_suffix = "plus" if strand == "+" else "minus"
     output_path = output_dir / f"03_splice_site_usage_{strand_suffix}.png"
 
@@ -1500,6 +1688,7 @@ def plot_selected_splice_junctions(
     output_dir,
     title,
     strand,
+    inserted_length=None,
     annotation_df=None,
     transcript_info=None
 ):
@@ -1515,7 +1704,7 @@ def plot_selected_splice_junctions(
     if selected_junctions.empty:
         print("No splice junctions passed the selected thresholds.")
         return None
-
+    
     fig, (ax_annotation, ax_junctions) = plt.subplots(
         nrows=2,
         figsize=(12, 4.8),
@@ -1523,8 +1712,11 @@ def plot_selected_splice_junctions(
         gridspec_kw={"height_ratios": [1, 4]}
     )
     
+    strand_symbol = "+" if strand == "+" else "−"
+    
+    formatted_title = italicize_gene_in_text(title, transcript_info)
     fig.suptitle(
-    f"{title} — selected {SPLICE_JUNCTIONS_LABEL}",
+    f"{formatted_title} — {SPLICE_JUNCTIONS_LABEL} | strand {strand_symbol}",
         fontsize=14,
         y=0.98,
     )
@@ -1534,13 +1726,16 @@ def plot_selected_splice_junctions(
 
     ax_junctions.set_title("")
 
-    ax_junctions.set_xticks([])
     ax_junctions.set_yticks([])
-    ax_junctions.set_xlabel("")
     ax_junctions.set_ylabel("")
 
-    for spine in ax_junctions.spines.values():
-        spine.set_visible(False)
+    format_genomic_xaxis(ax_junctions)
+    ax_junctions.set_xlabel("Genomic position (GRCh38)")
+
+    ax_junctions.spines["top"].set_visible(False)
+    ax_junctions.spines["right"].set_visible(False)
+    ax_junctions.spines["left"].set_visible(False)
+    ax_junctions.spines["bottom"].set_visible(True)
 
     max_abs_delta = selected_junctions["abs_delta"].max()
     if max_abs_delta == 0:
@@ -1561,7 +1756,7 @@ def plot_selected_splice_junctions(
 
         arc_height = 0.35 + 0.65 * (junction_length / max_length)
         linewidth = 1.5 + 4.5 * (row["abs_delta"] / max_abs_delta)
-        delta_label = f"Δ {row['delta_alt_ref']:+.2f}"
+        delta_label = f"Δ {row['abs_delta']:.2f}"
      
        
 
@@ -1596,12 +1791,20 @@ def plot_selected_splice_junctions(
             y_fraction=0.95,
             linewidth=1.2,
         )
+        
+    shade_inserted_region(
+        ax_junctions,
+        variant_pos=variant_pos,
+        inserted_length=inserted_length,
+    )
 
     legend_elements = [
         Line2D([0], [0], color=REF_COLOR, linewidth=2.5, label="Decreased in ALT"),
         Line2D([0], [0], color=ALT_COLOR, linewidth=2.5, label="Increased in ALT"),
     ]
-
+    if inserted_length is not None:
+        legend_elements.append(inserted_region_legend_handle())
+    
     ax_junctions.legend(
         handles=legend_elements,
         loc="upper right",
@@ -1777,6 +1980,7 @@ def main():
             variant_pos=variant_pos,
             output_dir=output_dir,
             title=args.title,
+            inserted_length=args.inserted_length,
             annotation_df=annotation_df,
             transcript_info=transcript_info
         )
@@ -1794,6 +1998,7 @@ def main():
                 output_dir=output_dir,
                 title=args.title,
                 strand=args.strand,
+                inserted_length=args.inserted_length,
                 annotation_df=annotation_df,
                 transcript_info=transcript_info
             )
@@ -1809,6 +2014,7 @@ def main():
                     output_dir=output_dir,
                     title=args.title,
                     strand=strand,
+                    inserted_length=args.inserted_length,
                     annotation_df=annotation_df,
                     transcript_info=transcript_info
                 )
@@ -1826,6 +2032,7 @@ def main():
                 output_dir=output_dir,
                 title=args.title,
                 strand=args.strand,
+                inserted_length=args.inserted_length,
                 annotation_df=annotation_df,
                 transcript_info=transcript_info
             )
@@ -1841,6 +2048,7 @@ def main():
                     output_dir=output_dir,
                     title=args.title,
                     strand=strand,
+                    inserted_length=args.inserted_length,
                     annotation_df=annotation_df,
                     transcript_info=transcript_info
                 )
@@ -1884,6 +2092,7 @@ def main():
             output_dir=output_dir,
             title=args.title,
             strand=args.strand,
+            inserted_length=args.inserted_length,
             annotation_df=annotation_df,
             transcript_info=transcript_info
         )
