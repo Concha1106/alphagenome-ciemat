@@ -73,7 +73,7 @@ def plot_dlg1_annotation(ax):
     ax.set_xlabel("Genomic position, chr3:197086544-197076044 (GRCh38)")
 
 # 1) Paths
-project_root = Path("~/proyectos_UAX/alphagenome-ciemat").expanduser()
+project_root = Path(__file__).resolve().parents[2]
 results_dir  = project_root / "results/2026-04-10-exp02-exon-skipping"
 
 sites_file = results_dir / "dlg1_splice_sites_ref_vs_alt.tsv"

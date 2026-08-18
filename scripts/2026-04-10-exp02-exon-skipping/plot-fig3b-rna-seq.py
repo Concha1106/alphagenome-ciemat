@@ -35,7 +35,7 @@ DLG1_EXONS = [
         
 # 1) Paths
 
-project_root = Path("~/proyectos_UAX/alphagenome-ciemat").expanduser()
+project_root = Path(__file__).resolve().parents[2]
 results_dir = project_root / "results/2026-04-10-exp02-exon-skipping"
 
 rna_file = results_dir / "dlg1_rna_seq_ref_vs_alt.tsv"
