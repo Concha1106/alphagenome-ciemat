@@ -3,7 +3,7 @@
 """
 Created on Mon Jul  6 14:41:38 2026
 
-@author: e6260
+@author: Concha González Durán
 """
 
 def classify_prediction_output(data):

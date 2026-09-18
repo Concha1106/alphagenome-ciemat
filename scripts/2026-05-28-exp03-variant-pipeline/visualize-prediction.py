@@ -3,7 +3,7 @@
 """
 Created on Wed Jun 24 12:00:29 2026
 
-@author: e6260
+@author: Concha González Durán
 """
 """
 Visualize AlphaGenome predict_variant outputs.

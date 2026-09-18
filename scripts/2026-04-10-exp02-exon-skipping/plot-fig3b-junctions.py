@@ -4,7 +4,7 @@
 Created on Wed Apr 29 14:29:38 2026
 Description: Script to graph the splices junction parameter of figure 3b
 
-@author: e6260
+@author: Concha González Durán
 """
 
 from pathlib import Path
