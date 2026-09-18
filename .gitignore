@@ -17,8 +17,11 @@ venv/
 *.swp
 *~
 
-# Sistem
+# System
 .DS_Store
+
+# R
+.Rhistory
 
 # Results (generated data) & intermediate data
 results/*

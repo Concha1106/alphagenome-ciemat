@@ -50,7 +50,7 @@ print(df.head())
 
 # 3) Smooth signal
 
-window = 150  # probar con diferntes valores, ver con Andrés (rolling calcula la media de los puntos vecinos)
+window = 150  # Rolling mean window; adjust as needed for signal smoothing
 
 df["ref_smooth"] = df["ref_value"].rolling(window=window, center=True).mean()
 df["alt_smooth"] = df["alt_value"].rolling(window=window, center=True).mean()
