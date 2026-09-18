@@ -12,6 +12,7 @@ and integrates them into a combined splicing score.
 
 @author: concha
 """
+from pathlib import Path
 
 from alphagenome.data import genome
 from alphagenome.models import dna_client, variant_scorers
@@ -138,7 +139,9 @@ df_junctions_tibial = df_junctions_tibial.sort_values(
     ascending=False
 )
 
-outdir = "~/Desktop/alphagenome-ciemat/results/2026-04-10-exp02-exon-skipping"
+project_root = Path(__file__).resolve().parents[2]
+outdir = project_root / "results" / "2026-04-10-exp02-exon-skipping"
+outdir.mkdir(parents=True, exist_ok=True)
 
 df_usage_tibial_clean.to_csv(f"{outdir}/dlg1_usage_tibial.tsv", sep="\t")
 df_sites.to_csv(f"{outdir}/dlg1_sites.tsv", sep="\t")

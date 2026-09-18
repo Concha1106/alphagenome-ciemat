@@ -13,7 +13,7 @@ from matplotlib.patches import Arc
 from matplotlib.lines import Line2D
 
 # 1) Paths
-project_root   = Path("~/Desktop/test-zip-recovery/alphagenome-ciemat").expanduser()
+project_root = Path(__file__).resolve().parents[2]
 results_dir    = project_root / "results/2026-04-10-exp02-exon-skipping"
 
 junctions_file = results_dir / "dlg1_splice_junctions_ref_vs_alt.tsv"

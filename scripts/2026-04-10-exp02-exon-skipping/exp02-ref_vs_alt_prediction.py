@@ -62,7 +62,8 @@ variant_output = model.predict_variant(
 
 # 4) Define output directory and plotting region
 
-outdir = Path("~/Desktop/test-zip-recovery/alphagenome-ciemat/results/2026-04-10-exp02-exon-skipping").expanduser()
+project_root = Path(__file__).resolve().parents[2]
+outdir = project_root / "results" / "2026-04-10-exp02-exon-skipping"
 outdir.mkdir(parents=True, exist_ok=True)
 
 plot_region = genome.Interval(
