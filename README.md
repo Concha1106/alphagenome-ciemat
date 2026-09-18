@@ -26,9 +26,9 @@ I developed a reproducible Python workflow to run AlphaGenome predictions, proce
 
 The REF/ALT comparison reproduced the RNA-seq and splice-junction changes associated with skipping of the affected exon.
 
-![DLG1 RNA-seq prediction](docs/images/dlg1-rna-seq.png)
+![DLG1 RNA-seq prediction](docs/images/dlg1-rna-seq-final.png)
 
-![DLG1 splice-junction prediction](docs/images/dlg1-splice-junctions.png)
+![DLG1 splice-junction prediction](docs/images/dlg1-splice-junctions-final.png)
 
 ### SEC23B knock-in assessment
 
